@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { AzureDevOpsClient } from "./azureDevOps/client.js";
+import { runConfigSetup } from "./commands/configSetup.js";
 import {
   defaultUserConfigPath,
   initUserConfig,
@@ -161,6 +162,15 @@ export function createCli(): Command {
     .action(async () => {
       const filename = await initUserConfig(selectedConfigPath());
       console.log(`Config written to ${filename}`);
+    });
+
+  config
+    .command("setup")
+    .description("Interactively create or update the non-secret user config file")
+    .action(async () => {
+      const filename = await runConfigSetup(selectedConfigPath());
+      console.log(`Config written to ${filename}`);
+      console.log("Keep ADO_ASSIST_AZURE_DEVOPS_PAT and provider API keys in environment variables.");
     });
 
   config

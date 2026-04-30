@@ -23,6 +23,7 @@ export interface UserConfig {
     outputDir?: string;
   };
 }
+export type ProviderKind = NonNullable<UserProviderConfig["kind"]>;
 interface UserConfigPathOptions {
   platform?: NodeJS.Platform;
   env?: Env;
@@ -36,6 +37,13 @@ type OpenAICompatibleEnv = Env & { ADO_ASSIST_PROVIDER: "openai-compatible" };
 
 const DEFAULT_EMPHASIS: ReviewEmphasis[] = ["general", "standards", "quality", "risk"];
 const VALID_EMPHASIS = new Set<ReviewEmphasis>(["general", "standards", "quality", "risk"]);
+const VALID_PROVIDER_KINDS = new Set<ProviderKind>([
+  "openai",
+  "azure-openai",
+  "anthropic",
+  "gemini",
+  "openai-compatible"
+]);
 const SAMPLE_USER_CONFIG: UserConfig = {
   azureDevOps: {
     organization: "your-org"
@@ -292,6 +300,20 @@ export async function loadAzureDevOpsConfigFromFileAndEnv(
 }
 
 export async function initUserConfig(filename = defaultUserConfigPath()): Promise<string> {
+  return writeNewUserConfig(filename, SAMPLE_USER_CONFIG);
+}
+
+export async function writeUserConfig(filename: string, config: UserConfig): Promise<string> {
+  rejectSecretConfig(config);
+  await mkdir(dirname(filename), { recursive: true });
+  await writeFile(filename, `${JSON.stringify(config, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600
+  });
+  return filename;
+}
+
+export async function writeNewUserConfig(filename: string, config: UserConfig): Promise<string> {
   try {
     await access(filename, constants.F_OK);
     throw new AppError(`Config file already exists: ${filename}`);
@@ -301,12 +323,7 @@ export async function initUserConfig(filename = defaultUserConfigPath()): Promis
     }
   }
 
-  await mkdir(dirname(filename), { recursive: true });
-  await writeFile(filename, `${JSON.stringify(SAMPLE_USER_CONFIG, null, 2)}\n`, {
-    encoding: "utf8",
-    mode: 0o600
-  });
-  return filename;
+  return writeUserConfig(filename, config);
 }
 
 export function defaultUserConfigPath(options: UserConfigPathOptions = {}): string {
@@ -389,12 +406,23 @@ function parseUserConfig(content: string, filename: string): UserConfig {
 
     const config = parsed as UserConfig;
     rejectSecretConfig(config);
+    validateUserConfig(config);
     return config;
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
     }
     throw new AppError(`Unable to parse config file: ${filename}`);
+  }
+}
+
+function validateUserConfig(config: UserConfig): void {
+  if (config.provider?.kind && !VALID_PROVIDER_KINDS.has(config.provider.kind)) {
+    throw new AppError("Config provider.kind must be openai, azure-openai, anthropic, gemini, or openai-compatible");
+  }
+
+  if (config.review?.emphasis) {
+    validateReviewEmphasis(config.review.emphasis);
   }
 }
 

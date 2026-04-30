@@ -89,9 +89,12 @@ Create a sample config file:
 
 ```bash
 ado-assist config init
+ado-assist config setup
 ado-assist config path
 ado-assist config show
 ```
+
+`config init` creates a sample non-secret config file and refuses to overwrite an existing one. `config setup` asks for non-secret defaults and writes them to the selected config file.
 
 Default config file locations:
 

@@ -7,7 +7,9 @@ import {
   initUserConfig,
   loadConfig,
   loadUserConfigFile,
-  redactConfig
+  redactConfig,
+  writeNewUserConfig,
+  writeUserConfig
 } from "../src/config.js";
 
 let tempDir: string | undefined;
@@ -147,6 +149,40 @@ describe("initUserConfig", () => {
     expect(content).toContain('"kind": "openai-compatible"');
     expect(content).not.toContain('"pat"');
     expect(content).not.toContain("apiKey");
+  });
+});
+
+describe("writeUserConfig", () => {
+  it("overwrites an existing non-secret config file", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ado-assist-config-"));
+    const filename = join(tempDir, "config.json");
+    await writeFile(filename, JSON.stringify({ azureDevOps: { organization: "old" } }), "utf8");
+
+    await expect(writeUserConfig(filename, { azureDevOps: { organization: "new" } })).resolves.toBe(filename);
+
+    await expect(loadUserConfigFile(filename)).resolves.toEqual({ azureDevOps: { organization: "new" } });
+  });
+
+  it("does not allow secrets when writing config", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ado-assist-config-"));
+
+    await expect(
+      writeUserConfig(join(tempDir, "config.json"), {
+        azureDevOps: { organization: "acme", pat: "pat" }
+      })
+    ).rejects.toThrow("Do not store secrets in the ADO Assist config file");
+  });
+});
+
+describe("writeNewUserConfig", () => {
+  it("refuses to overwrite an existing config file", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ado-assist-config-"));
+    const filename = join(tempDir, "config.json");
+    await writeFile(filename, "{}", "utf8");
+
+    await expect(writeNewUserConfig(filename, { azureDevOps: { organization: "acme" } })).rejects.toThrow(
+      "Config file already exists"
+    );
   });
 });
 
