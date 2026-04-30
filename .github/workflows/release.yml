@@ -14,6 +14,7 @@ on:
           - major
 
 permissions:
+  actions: write
   contents: write
 
 jobs:
@@ -69,3 +70,10 @@ jobs:
         run: |
           TAG="$(node -p "'v' + require('./package.json').version")"
           gh release create "$TAG" --verify-tag --generate-notes
+
+      - name: Dispatch npm publish workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="$(node -p "'v' + require('./package.json').version")"
+          gh workflow run publish.yml --ref "$TAG" -f tag="$TAG"
