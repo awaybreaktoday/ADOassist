@@ -1,7 +1,10 @@
 import type { PullRequestContext, ReviewResult } from "../types.js";
 
 export function reviewDraftFilename(context: PullRequestContext): string {
-  return `reviews/${context.ref.organization}-${context.ref.project}-${context.ref.repository}-pr-${context.ref.pullRequestId}.md`;
+  const organization = encodeURIComponent(context.ref.organization);
+  const project = encodeURIComponent(context.ref.project);
+  const repository = encodeURIComponent(context.ref.repository);
+  return `reviews/${organization}-${project}-${repository}-pr-${context.ref.pullRequestId}.md`;
 }
 
 export function formatReviewDraft(context: PullRequestContext, review: ReviewResult): string {

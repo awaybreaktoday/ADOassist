@@ -10,7 +10,7 @@ const commentSchema = z.object({
   category: z.enum(["correctness", "risk", "tests", "maintainability", "standards"]),
   message: z.string().min(1),
   suggestion: z.string().optional()
-});
+}).strict();
 
 const draftSchema = z.object({
   pr: z.object({
@@ -19,9 +19,9 @@ const draftSchema = z.object({
     repository: z.string().min(1),
     pullRequestId: z.number().int().positive(),
     url: z.string().url()
-  }),
+  }).strict(),
   comments: z.array(commentSchema)
-});
+}).strict();
 
 export interface ParsedReviewDraft {
   pr: PullRequestRef;
@@ -29,7 +29,7 @@ export interface ParsedReviewDraft {
 }
 
 export function parseReviewDraft(markdown: string): ParsedReviewDraft {
-  const match = markdown.match(/```json ado-assist-approved-comments\n([\s\S]*?)\n```/);
+  const match = markdown.match(/```json ado-assist-approved-comments\r?\n([\s\S]*?)(?:\r?\n)?```/);
   if (!match) {
     throw new AppError("Review draft is missing approved comments JSON");
   }

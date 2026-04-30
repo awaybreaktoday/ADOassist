@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatReviewDraft } from "../src/drafts/format.js";
+import { formatReviewDraft, reviewDraftFilename } from "../src/drafts/format.js";
 import { parseReviewDraft } from "../src/drafts/parse.js";
 import { sampleContext, sampleReview } from "./fixtures/sampleReview.js";
 
@@ -22,5 +22,37 @@ describe("review draft format and parse", () => {
 
   it("rejects drafts without the approved comments block", () => {
     expect(() => parseReviewDraft("# Review")).toThrow("Review draft is missing approved comments JSON");
+  });
+
+  it("encodes path-like PR values in draft filenames", () => {
+    const filename = reviewDraftFilename({
+      ...sampleContext,
+      ref: {
+        ...sampleContext.ref,
+        organization: "../acme",
+        project: "Pay/ments",
+        repository: "api service"
+      }
+    });
+
+    expect(filename).toBe("reviews/..%2Facme-Pay%2Fments-api%20service-pr-42.md");
+  });
+
+  it("rejects unexpected edited JSON fields", () => {
+    const draft = formatReviewDraft(sampleContext, sampleReview);
+    const edited = draft.replace('"filePath": "/src/payments/retry.ts"', '"filepath": "/src/payments/retry.ts"');
+
+    expect(() => parseReviewDraft(edited)).toThrow(
+      "Review draft approved comments JSON has an invalid shape"
+    );
+  });
+
+  it("parses CRLF drafts and closing fences without a preceding newline", () => {
+    const draft = formatReviewDraft(sampleContext, sampleReview)
+      .replace(/\n```$/, "```")
+      .replace(/\n/g, "\r\n");
+    const parsed = parseReviewDraft(draft);
+
+    expect(parsed.comments).toEqual(sampleReview.comments);
   });
 });
