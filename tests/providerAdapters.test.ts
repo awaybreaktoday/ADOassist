@@ -26,6 +26,7 @@ describe("OpenAIReviewProvider", () => {
     expect(body.model).toBe("gpt-4.1");
     expect(body.response_format).toEqual({ type: "json_object" });
     expect(body.messages[0].role).toBe("system");
+    expect(body.messages[0].content).toContain("Use filePath and line together for inline comments");
     expect(body.messages[1]).toEqual({
       role: "user",
       content: JSON.stringify({ pullRequest: sampleContext, rubric: "rubric" })
@@ -64,6 +65,7 @@ describe("AzureOpenAIReviewProvider", () => {
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.response_format).toEqual({ type: "json_object" });
     expect(body.messages[0].role).toBe("system");
+    expect(body.messages[0].content).toContain("Use filePath and line together for inline comments");
     expect(body.messages[1]).toEqual({
       role: "user",
       content: JSON.stringify({ pullRequest: sampleContext, rubric: "rubric" })

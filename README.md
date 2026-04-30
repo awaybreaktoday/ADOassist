@@ -39,8 +39,11 @@ export ADO_ASSIST_AZURE_OPENAI_DEPLOYMENT="your-deployment"
 Optional:
 
 ```bash
+export ADO_ASSIST_AZURE_DEVOPS_ORG="org"
 export ADO_ASSIST_REVIEW_EMPHASIS="general,standards,risk"
 ```
+
+`ADO_ASSIST_AZURE_DEVOPS_ORG` is optional in the current PR URL workflow because the organization is parsed from the PR URL. It is reserved for future commands that do not take a full PR URL.
 
 ## Usage
 
