@@ -295,3 +295,27 @@ npm test
 npm run typecheck
 npm run build
 ```
+
+## Publishing
+
+Publishing should happen through GitHub Actions using npm trusted publishing. This avoids storing a long-lived npm token in GitHub secrets.
+
+One-time npm setup:
+
+1. Publish the first package version manually if the package does not exist yet.
+2. On npmjs.com, open the package settings and add a trusted publisher:
+   - Provider: GitHub Actions
+   - Organization/user: `awaybreaktoday`
+   - Repository: `ADOassist`
+   - Workflow filename: `publish.yml`
+3. In the package publishing access settings, require 2FA and disallow tokens after trusted publishing is verified.
+
+Release flow:
+
+```bash
+npm version patch
+npm run build
+git push --follow-tags
+```
+
+Then create and publish a GitHub Release for the new `vX.Y.Z` tag. The `Publish to npm` workflow verifies that the release tag matches `package.json`, runs audit/tests/typecheck/build/pack, and publishes with npm OIDC.

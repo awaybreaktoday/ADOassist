@@ -2,6 +2,13 @@
   "name": "ado-assist",
   "version": "0.1.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/awaybreaktoday/ADOassist.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=24 <25"
   },
