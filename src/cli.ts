@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import { AzureDevOpsClient } from "./azureDevOps/client.js";
 import { runConfigSetup } from "./commands/configSetup.js";
@@ -15,13 +16,16 @@ import { createReviewDraft, resolveReviewMode } from "./commands/review.js";
 import { GitClient } from "./git/client.js";
 import { createReviewProvider } from "./providers/factory.js";
 
+const require = createRequire(import.meta.url);
+const packageJson = require("../package.json") as { version: string };
+
 export function createCli(): Command {
   const program = new Command();
 
   program
     .name("ado-assist")
     .description("Draft and post AI-assisted Azure DevOps PR review comments")
-    .version("0.1.0")
+    .version(packageJson.version)
     .option("--config <file>", "path to the user config file");
 
   const selectedConfigPath = (): string => {
