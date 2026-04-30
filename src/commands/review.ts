@@ -1,13 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { AzureDevOpsClient } from "../azureDevOps/client.js";
 import { parsePullRequestUrl } from "../azureDevOps/url.js";
 import { formatReviewDraft, reviewDraftFilename } from "../drafts/format.js";
 import { AppError } from "../errors.js";
 import type { ReviewProvider } from "../providers/types.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
 import { reviewEmphasisForMode } from "../review/rubric.js";
-import type { AppConfig, PullRequestRef, ReviewMode } from "../types.js";
+import type { AppConfig, ChangedFile, PullRequestMetadata, PullRequestRef, ReviewMode } from "../types.js";
 
 export interface ReviewTargetOptions {
   prUrl?: string;
@@ -20,8 +19,13 @@ export interface ReviewCommandOptions {
   target: ReviewTargetOptions;
   mode?: ReviewMode;
   config: AppConfig;
-  client: AzureDevOpsClient;
+  client: ReviewDraftClient;
   provider: ReviewProvider;
+}
+
+export interface ReviewDraftClient {
+  getPullRequestMetadata(ref: PullRequestRef): Promise<PullRequestMetadata>;
+  getChangedFiles(ref: PullRequestRef): Promise<ChangedFile[]>;
 }
 
 export async function createReviewDraft(options: ReviewCommandOptions): Promise<string> {

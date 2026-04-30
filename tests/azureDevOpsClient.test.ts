@@ -41,6 +41,50 @@ describe("AzureDevOpsClient", () => {
     expect(metadata.description).toBe("feature removed");
   });
 
+  it("lists active pull requests for a repository", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        value: [
+          {
+            pullRequestId: 42,
+            title: "Add payment retry",
+            createdBy: { displayName: "A. Developer" },
+            sourceRefName: "refs/heads/feature/retry",
+            targetRefName: "refs/heads/main"
+          }
+        ]
+      })
+    });
+
+    const client = new AzureDevOpsClient({ pat: "pat", fetchImpl: fetchMock });
+    const pullRequests = await client.listActivePullRequests({
+      organization: "acme",
+      project: "Payments",
+      repository: "api-service"
+    });
+
+    expect(pullRequests).toEqual([
+      {
+        ref: {
+          organization: "acme",
+          project: "Payments",
+          repository: "api-service",
+          pullRequestId: 42,
+          url: "https://dev.azure.com/acme/Payments/_git/api-service/pullrequest/42"
+        },
+        title: "Add payment retry",
+        author: "A. Developer",
+        sourceBranch: "refs/heads/feature/retry",
+        targetBranch: "refs/heads/main"
+      }
+    ]);
+    const url = new URL(fetchMock.mock.calls[0][0]);
+    expect(url.pathname).toBe("/acme/Payments/_apis/git/repositories/api-service/pullrequests");
+    expect(url.searchParams.get("searchCriteria.status")).toBe("active");
+    expect(url.searchParams.get("api-version")).toBe("7.1");
+  });
+
   it("posts approved comments", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
     const client = new AzureDevOpsClient({ pat: "pat", fetchImpl: fetchMock });

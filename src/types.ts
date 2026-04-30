@@ -48,6 +48,20 @@ export interface PullRequestRef {
   url: string;
 }
 
+export interface RepositoryRef {
+  organization: string;
+  project: string;
+  repository: string;
+}
+
+export interface PullRequestSummary {
+  ref: PullRequestRef;
+  title: string;
+  author: string;
+  sourceBranch: string;
+  targetBranch: string;
+}
+
 export interface PullRequestMetadata {
   title: string;
   description: string;

@@ -1,6 +1,13 @@
 import { createTwoFilesPatch } from "diff";
 import { AppError } from "../errors.js";
-import type { ChangedFile, PullRequestMetadata, PullRequestRef, ReviewComment } from "../types.js";
+import type {
+  ChangedFile,
+  PullRequestMetadata,
+  PullRequestRef,
+  PullRequestSummary,
+  RepositoryRef,
+  ReviewComment
+} from "../types.js";
 
 type FetchLike = typeof fetch;
 
@@ -40,6 +47,36 @@ export class AzureDevOpsClient {
   constructor(options: AzureDevOpsClientOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.authorization = `Basic ${Buffer.from(`:${options.pat}`).toString("base64")}`;
+  }
+
+  async listActivePullRequests(repository: RepositoryRef): Promise<PullRequestSummary[]> {
+    const url = new URL(`${this.repositoryBaseUrl(repository)}/pullrequests`);
+    url.searchParams.set("searchCriteria.status", "active");
+    url.searchParams.set("api-version", "7.1");
+
+    const payload = await this.getJson<{
+      value?: Array<{
+        pullRequestId: number;
+        title: string;
+        createdBy?: { displayName?: string };
+        sourceRefName: string;
+        targetRefName: string;
+      }>;
+    }>(url.toString());
+
+    return (payload.value ?? []).map((pullRequest) => ({
+      ref: {
+        organization: repository.organization,
+        project: repository.project,
+        repository: repository.repository,
+        pullRequestId: pullRequest.pullRequestId,
+        url: this.pullRequestUrl(repository, pullRequest.pullRequestId)
+      },
+      title: pullRequest.title,
+      author: pullRequest.createdBy?.displayName ?? "Unknown",
+      sourceBranch: pullRequest.sourceRefName,
+      targetBranch: pullRequest.targetRefName
+    }));
   }
 
   async getPullRequestMetadata(ref: PullRequestRef): Promise<PullRequestMetadata> {
@@ -132,9 +169,19 @@ export class AzureDevOpsClient {
   }
 
   private baseUrl(ref: PullRequestRef): string {
+    return this.repositoryBaseUrl(ref);
+  }
+
+  private repositoryBaseUrl(ref: RepositoryRef): string {
     return `https://dev.azure.com/${encodeURIComponent(ref.organization)}/${encodeURIComponent(
       ref.project
     )}/_apis/git/repositories/${encodeURIComponent(ref.repository)}`;
+  }
+
+  private pullRequestUrl(ref: RepositoryRef, pullRequestId: number): string {
+    return `https://dev.azure.com/${encodeURIComponent(ref.organization)}/${encodeURIComponent(
+      ref.project
+    )}/_git/${encodeURIComponent(ref.repository)}/pullrequest/${pullRequestId}`;
   }
 
   private async getLatestIteration(ref: PullRequestRef): Promise<PullRequestIteration> {

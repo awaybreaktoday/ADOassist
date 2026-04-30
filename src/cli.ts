@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { AzureDevOpsClient } from "./azureDevOps/client.js";
 import { loadAzureDevOpsConfigFromEnv, loadConfigFromEnv } from "./config.js";
 import { postReviewDraftFile } from "./commands/post.js";
+import { listOpenPullRequests, resolveLimit, reviewOpenPullRequests } from "./commands/prs.js";
 import { createReviewDraft, resolveReviewMode } from "./commands/review.js";
 import { createReviewProvider } from "./providers/factory.js";
 
@@ -38,6 +39,63 @@ export function createCli(): Command {
         console.log(`Review draft written to ${filename}`);
       }
     );
+
+  program
+    .command("prs")
+    .description("List active Azure DevOps pull requests for a repository")
+    .requiredOption("--project <project>")
+    .requiredOption("--repo <repo>")
+    .action(async (options: { project: string; repo: string }) => {
+      const azureDevOps = loadAzureDevOpsConfigFromEnv();
+      const client = new AzureDevOpsClient({ pat: azureDevOps.pat });
+      const pullRequests = await listOpenPullRequests({
+        target: { project: options.project, repo: options.repo },
+        config: { azureDevOps },
+        client
+      });
+
+      if (pullRequests.length === 0) {
+        console.log("No active pull requests found.");
+        return;
+      }
+
+      for (const pullRequest of pullRequests) {
+        console.log(
+          `#${pullRequest.ref.pullRequestId} ${pullRequest.title} (${pullRequest.author}) ${pullRequest.sourceBranch} -> ${pullRequest.targetBranch}`
+        );
+        console.log(`  ${pullRequest.ref.url}`);
+      }
+    });
+
+  program
+    .command("review-open")
+    .description("Create review drafts for active Azure DevOps pull requests in a repository")
+    .requiredOption("--project <project>")
+    .requiredOption("--repo <repo>")
+    .option("--mode <mode>", "review mode: full, code, quality, or risk")
+    .option("--limit <count>", "maximum number of open pull requests to review")
+    .action(async (options: { project: string; repo: string; mode?: string; limit?: string }) => {
+      const config = loadConfigFromEnv();
+      const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
+      const provider = createReviewProvider(config);
+      const filenames = await reviewOpenPullRequests({
+        target: { project: options.project, repo: options.repo },
+        mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
+        limit: resolveLimit(options.limit),
+        config,
+        client,
+        provider
+      });
+
+      if (filenames.length === 0) {
+        console.log("No active pull requests found.");
+        return;
+      }
+
+      for (const filename of filenames) {
+        console.log(`Review draft written to ${filename}`);
+      }
+    });
 
   program
     .command("post")
