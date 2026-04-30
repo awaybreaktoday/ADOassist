@@ -108,6 +108,12 @@ npm run dev -- post "reviews/org-project-repo-pr-123.md"
 
 The `review` command writes a Markdown draft under `reviews/`. The shorthand form uses `ADO_ASSIST_AZURE_DEVOPS_ORG` for the organization. Edit the approved JSON block to remove comments you do not want posted, then run `post`.
 
+## Privacy Notes
+
+Review drafts can contain PR metadata, repository names, author names, file paths, and snippets or summaries of changed code. The `reviews/` directory is ignored by git, but you should still treat generated drafts as sensitive and avoid committing, sharing, or pasting them into public places unless you have reviewed and sanitized them.
+
+When using hosted model providers, PR metadata and diffs are sent to the configured provider. Use a local OpenAI-compatible provider if your organization requires review data to stay on your own machine or network.
+
 ## Verification
 
 ```bash
