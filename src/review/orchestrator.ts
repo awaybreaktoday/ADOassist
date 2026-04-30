@@ -16,9 +16,10 @@ export async function reviewPullRequest(options: ReviewPullRequestOptions): Prom
     pullRequest: options.context,
     rubric
   });
+  const normalizedResult = normalizeReviewResult(result);
 
-  validateReviewResult(result, changedFiles);
-  return result;
+  validateReviewResult(normalizedResult, changedFiles);
+  return normalizedResult;
 }
 
 function validateReviewResult(result: ReviewResult, changedFiles: Set<string>): void {
@@ -32,6 +33,42 @@ function validateReviewResult(result: ReviewResult, changedFiles: Set<string>): 
       throw new AppError("Provider returned a comment for a file outside the PR");
     }
   }
+}
+
+function normalizeReviewResult(result: ReviewResult): ReviewResult {
+  if (!isRecord(result) || !Array.isArray(result.comments)) {
+    return result;
+  }
+
+  return {
+    ...result,
+    comments: result.comments.map(normalizeReviewComment)
+  };
+}
+
+function normalizeReviewComment(comment: ReviewComment): ReviewComment {
+  if (!isRecord(comment)) {
+    return comment;
+  }
+
+  const normalized: Record<string, unknown> = { ...comment };
+  const filePath = optionalString(normalized.filePath);
+  const suggestion = optionalString(normalized.suggestion);
+
+  if (filePath === undefined) {
+    delete normalized.filePath;
+    delete normalized.line;
+  } else {
+    normalized.filePath = filePath;
+  }
+
+  if (suggestion === undefined) {
+    delete normalized.suggestion;
+  } else {
+    normalized.suggestion = suggestion;
+  }
+
+  return normalized as unknown as ReviewComment;
 }
 
 function reviewResultValidationError(value: unknown): string | undefined {
@@ -109,4 +146,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function optionalString(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== "string") {
+    return String(value);
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }

@@ -97,6 +97,41 @@ describe("reviewPullRequest", () => {
     ).rejects.toThrow("Provider returned an invalid review result: summary must be a non-empty string");
   });
 
+  it("normalizes empty optional fields on general provider comments", async () => {
+    const result = await reviewPullRequest({
+      context: sampleContext,
+      emphasis: ["quality"],
+      provider: {
+        name: "mock",
+        async reviewPullRequest() {
+          return {
+            ...sampleReview,
+            comments: [
+              {
+                id: "quality-gap",
+                filePath: "",
+                line: null,
+                severity: "warning",
+                category: "standards",
+                message: "The PR description does not explain validation evidence.",
+                suggestion: ""
+              }
+            ]
+          } as never;
+        }
+      }
+    });
+
+    expect(result.comments).toEqual([
+      {
+        id: "quality-gap",
+        severity: "warning",
+        category: "standards",
+        message: "The PR description does not explain validation evidence."
+      }
+    ]);
+  });
+
   it("rejects inline comments without a positive line with the comment path", async () => {
     await expect(
       reviewPullRequest({
