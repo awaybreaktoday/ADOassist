@@ -3,19 +3,27 @@ import { dirname } from "node:path";
 import type { AzureDevOpsClient } from "../azureDevOps/client.js";
 import { parsePullRequestUrl } from "../azureDevOps/url.js";
 import { formatReviewDraft, reviewDraftFilename } from "../drafts/format.js";
+import { AppError } from "../errors.js";
 import type { ReviewProvider } from "../providers/types.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
-import type { AppConfig } from "../types.js";
+import type { AppConfig, PullRequestRef } from "../types.js";
+
+export interface ReviewTargetOptions {
+  prUrl?: string;
+  project?: string;
+  repo?: string;
+  pr?: string | number;
+}
 
 export interface ReviewCommandOptions {
-  prUrl: string;
+  target: ReviewTargetOptions;
   config: AppConfig;
   client: AzureDevOpsClient;
   provider: ReviewProvider;
 }
 
 export async function createReviewDraft(options: ReviewCommandOptions): Promise<string> {
-  const ref = parsePullRequestUrl(options.prUrl);
+  const ref = resolvePullRequestRef(options.target, options.config);
   const metadata = await options.client.getPullRequestMetadata(ref);
   const files = await options.client.getChangedFiles(ref);
   const context = { ref, metadata, files };
@@ -30,4 +38,30 @@ export async function createReviewDraft(options: ReviewCommandOptions): Promise<
   await mkdir(dirname(filename), { recursive: true });
   await writeFile(filename, markdown, "utf8");
   return filename;
+}
+
+export function resolvePullRequestRef(target: ReviewTargetOptions, config: AppConfig): PullRequestRef {
+  if (target.prUrl) {
+    return parsePullRequestUrl(target.prUrl);
+  }
+
+  if (!target.project || !target.repo || target.pr === undefined) {
+    throw new AppError("review without a PR URL requires --project, --repo, and --pr");
+  }
+
+  const organization = config.azureDevOps.organization;
+  if (!organization) {
+    throw new AppError("ADO_ASSIST_AZURE_DEVOPS_ORG is required when reviewing without a PR URL");
+  }
+
+  const pullRequestIdRaw = String(target.pr).trim();
+  if (!/^[1-9]\d*$/.test(pullRequestIdRaw)) {
+    throw new AppError("Pull request id must be numeric");
+  }
+
+  return parsePullRequestUrl(
+    `https://dev.azure.com/${encodeURIComponent(organization)}/${encodeURIComponent(
+      target.project
+    )}/_git/${encodeURIComponent(target.repo)}/pullrequest/${pullRequestIdRaw}`
+  );
 }

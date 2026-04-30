@@ -43,16 +43,17 @@ export ADO_ASSIST_AZURE_DEVOPS_ORG="org"
 export ADO_ASSIST_REVIEW_EMPHASIS="general,standards,risk"
 ```
 
-`ADO_ASSIST_AZURE_DEVOPS_ORG` is optional in the current PR URL workflow because the organization is parsed from the PR URL. It is reserved for future commands that do not take a full PR URL.
+`ADO_ASSIST_AZURE_DEVOPS_ORG` is optional when using a full PR URL because the organization is parsed from the URL. It is required when using the shorthand review flags.
 
 ## Usage
 
 ```bash
 npm run dev -- review "https://dev.azure.com/org/project/_git/repo/pullrequest/123"
+npm run dev -- review --project project --repo repo --pr 123
 npm run dev -- post "reviews/org-project-repo-pr-123.md"
 ```
 
-The `review` command writes a Markdown draft under `reviews/`. Edit the approved JSON block to remove comments you do not want posted, then run `post`.
+The `review` command writes a Markdown draft under `reviews/`. The shorthand form uses `ADO_ASSIST_AZURE_DEVOPS_ORG` for the organization. Edit the approved JSON block to remove comments you do not want posted, then run `post`.
 
 ## Verification
 

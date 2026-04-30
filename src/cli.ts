@@ -15,12 +15,20 @@ export function createCli(): Command {
 
   program
     .command("review")
-    .argument("<pr-url>")
-    .action(async (prUrl: string) => {
+    .argument("[pr-url]")
+    .option("--project <project>")
+    .option("--repo <repo>")
+    .option("--pr <pull-request-id>")
+    .action(async (prUrl: string | undefined, options: { project?: string; repo?: string; pr?: string }) => {
       const config = loadConfigFromEnv();
       const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
       const provider = createReviewProvider(config);
-      const filename = await createReviewDraft({ prUrl, config, client, provider });
+      const filename = await createReviewDraft({
+        target: { prUrl, project: options.project, repo: options.repo, pr: options.pr },
+        config,
+        client,
+        provider
+      });
       console.log(`Review draft written to ${filename}`);
     });
 
