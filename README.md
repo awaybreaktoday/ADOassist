@@ -18,16 +18,24 @@ Deleted files and binary files are skipped in the first implementation. Large PR
 - An Azure DevOps PAT with Code read access for drafting reviews, and Code write access if you want to post comments
 - One configured model provider: OpenAI, Azure OpenAI, Anthropic Claude, Google Gemini, or an OpenAI-compatible server such as llama.cpp
 
-### Install From GitHub
+### Install From npm
 
-Install the command directly from this public repository:
+Install the command from npm:
 
 ```bash
-npm install -g https://github.com/awaybreaktoday/ADOassist/archive/refs/heads/main.tar.gz
+npm install -g ado-assist
 ado-assist --version
 ```
 
 To update later, rerun the same install command:
+
+```bash
+npm install -g ado-assist
+```
+
+### Install From GitHub
+
+If you need the latest `main` branch before an npm release, install the GitHub tarball:
 
 ```bash
 npm install -g https://github.com/awaybreaktoday/ADOassist/archive/refs/heads/main.tar.gz
@@ -63,7 +71,7 @@ npm run dev -- --help
 npm run dev -- review-local --target origin/main --mode full
 ```
 
-After `npm link`, `npm install -g .`, or the GitHub install, use the command directly:
+After `npm link`, `npm install -g .`, the npm install, or the GitHub install, use the command directly:
 
 ```bash
 ado-assist --help
@@ -280,7 +288,7 @@ When using hosted model providers, PR metadata and diffs are sent to the configu
 
 ## Verification
 
-`dist/` is committed so GitHub installs can run without compiling TypeScript in npm's temporary install directory. Run `npm run build` and include the generated `dist/` changes whenever CLI source changes.
+`dist/` is committed so GitHub installs can run without compiling TypeScript in npm's temporary install directory. npm packages also include `dist/`. Run `npm run build` and include the generated `dist/` changes whenever CLI source changes.
 
 ```bash
 npm test
