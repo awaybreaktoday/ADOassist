@@ -1,0 +1,28 @@
+{
+  "name": "ado-assist",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ado-assist": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "diff": "^5.2.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/diff": "^5.2.0",
+    "@types/node": "^20.14.10",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.4"
+  }
+}
