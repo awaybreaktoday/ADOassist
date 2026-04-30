@@ -1,5 +1,7 @@
 import { AppError } from "../errors.js";
 import type { ReviewResult } from "../types.js";
+import { parseProviderReviewContent } from "./parse.js";
+import { providerSystemPrompt } from "./prompt.js";
 import type { ReviewInput, ReviewProvider } from "./types.js";
 
 export class OpenAIReviewProvider implements ReviewProvider {
@@ -24,7 +26,7 @@ export class OpenAIReviewProvider implements ReviewProvider {
         temperature: 0.1,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: systemPrompt() },
+          { role: "system", content: providerSystemPrompt() },
           { role: "user", content: JSON.stringify(input) }
         ]
       })
@@ -42,15 +44,6 @@ export class OpenAIReviewProvider implements ReviewProvider {
       throw new AppError("OpenAI response did not include review content");
     }
 
-    return JSON.parse(content) as ReviewResult;
+    return parseProviderReviewContent("OpenAI", content);
   }
-}
-
-function systemPrompt(): string {
-  return [
-    "You are a precise pull request reviewer.",
-    "Return JSON with summary, riskSummary, and comments.",
-    "Each comment must include id, severity, category, message, and optional filePath, line, suggestion.",
-    "Only comment on files and lines present in the supplied PR context."
-  ].join("\n");
 }
