@@ -10,6 +10,7 @@ export const sampleContext: PullRequestContext = {
   },
   metadata: {
     title: "Add payment retry",
+    description: "Adds retry support and documents rollback expectations.",
     author: "A. Developer",
     sourceBranch: "refs/heads/feature/retry",
     targetBranch: "refs/heads/main",

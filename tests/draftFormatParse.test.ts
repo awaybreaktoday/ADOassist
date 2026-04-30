@@ -8,6 +8,9 @@ describe("review draft format and parse", () => {
     const draft = formatReviewDraft(sampleContext, sampleReview);
     const parsed = parseReviewDraft(draft);
 
+    expect(draft).toContain("- Description: Adds retry support and documents rollback expectations.");
+    expect(draft).toContain("## PR Quality And Coverage Gaps");
+    expect(draft).toContain("Add a test for retry exhaustion.");
     expect(parsed.pr).toEqual(sampleContext.ref);
     expect(parsed.comments).toEqual(sampleReview.comments);
   });

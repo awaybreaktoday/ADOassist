@@ -49,6 +49,7 @@ export interface PullRequestRef {
 
 export interface PullRequestMetadata {
   title: string;
+  description: string;
   author: string;
   sourceBranch: string;
   targetBranch: string;

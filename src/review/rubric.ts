@@ -11,7 +11,11 @@ export function buildReviewRubric(emphasis: ReviewEmphasis[]): string {
     "",
     "Return only findings that are actionable and grounded in the supplied diff.",
     "Do not invent files or line numbers.",
-    "Prefer fewer high-confidence comments over broad commentary."
+    "Prefer fewer high-confidence comments over broad commentary.",
+    "",
+    "Also review PR quality and coverage gaps. Use general PR comments for these findings unless a specific changed line is the best anchor.",
+    "Flag vague or missing PR description details, especially when the change affects infrastructure, security, data, or production behavior.",
+    "Look for missing validation, tests, rollout, rollback, monitoring, documentation, and operational-impact notes."
   ];
 
   if (emphasis.includes("general")) {

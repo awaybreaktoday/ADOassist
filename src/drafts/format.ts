@@ -10,12 +10,15 @@ export function reviewDraftFilename(context: PullRequestContext): string {
 export function formatReviewDraft(context: PullRequestContext, review: ReviewResult): string {
   const inlineComments = review.comments.filter((comment) => comment.filePath);
   const generalComments = review.comments.filter((comment) => !comment.filePath);
+  const qualityGapComments = generalComments.filter(isPrQualityComment);
+  const otherGeneralComments = generalComments.filter((comment) => !isPrQualityComment(comment));
 
   return `# ADO Assist Review Draft
 
 ## PR
 
 - Title: ${context.metadata.title}
+- Description: ${context.metadata.description}
 - Author: ${context.metadata.author}
 - Source: ${context.metadata.sourceBranch}
 - Target: ${context.metadata.targetBranch}
@@ -33,9 +36,13 @@ ${review.riskSummary}
 
 ${formatHumanComments(inlineComments)}
 
+## PR Quality And Coverage Gaps
+
+${formatHumanComments(qualityGapComments)}
+
 ## Suggested General Comments
 
-${formatHumanComments(generalComments)}
+${formatHumanComments(otherGeneralComments)}
 
 ## Approved Comments JSON
 
@@ -45,6 +52,13 @@ Remove comments from this JSON block before posting if you do not want them post
 ${JSON.stringify({ pr: context.ref, comments: review.comments }, null, 2)}
 \`\`\`
 `;
+}
+
+function isPrQualityComment(comment: ReviewResult["comments"][number]): boolean {
+  return (
+    !comment.filePath &&
+    ["tests", "risk", "maintainability", "standards"].includes(comment.category)
+  );
 }
 
 function formatHumanComments(comments: ReviewResult["comments"]): string {

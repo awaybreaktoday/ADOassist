@@ -45,6 +45,7 @@ export class AzureDevOpsClient {
   async getPullRequestMetadata(ref: PullRequestRef): Promise<PullRequestMetadata> {
     const payload = await this.getJson<{
       title: string;
+      description?: string;
       createdBy?: { displayName?: string };
       sourceRefName: string;
       targetRefName: string;
@@ -52,6 +53,7 @@ export class AzureDevOpsClient {
 
     return {
       title: payload.title,
+      description: payload.description?.trim() || "No description provided.",
       author: payload.createdBy?.displayName ?? "Unknown",
       sourceBranch: payload.sourceRefName,
       targetBranch: payload.targetRefName,

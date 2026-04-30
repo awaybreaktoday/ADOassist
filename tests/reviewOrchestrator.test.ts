@@ -13,6 +13,8 @@ describe("reviewPullRequest", () => {
           expect(input.pullRequest).toEqual(sampleContext);
           expect(input.rubric).toContain("Correctness bugs and regressions");
           expect(input.rubric).toContain("Team standards");
+          expect(input.rubric).toContain("PR description");
+          expect(input.rubric).toContain("validation, tests, rollout, rollback");
           return sampleReview;
         }
       }

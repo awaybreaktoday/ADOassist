@@ -8,6 +8,7 @@ describe("AzureDevOpsClient", () => {
       ok: true,
       json: async () => ({
         title: "Add payment retry",
+        description: "Adds retry support.",
         createdBy: { displayName: "A. Developer" },
         sourceRefName: "refs/heads/feature/retry",
         targetRefName: "refs/heads/main"
@@ -20,6 +21,24 @@ describe("AzureDevOpsClient", () => {
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(
       `Basic ${Buffer.from(":pat").toString("base64")}`
     );
+  });
+
+  it("includes the PR description in metadata", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        title: "feature removed",
+        description: "feature removed",
+        createdBy: { displayName: "A. Developer" },
+        sourceRefName: "refs/heads/upgrade-test",
+        targetRefName: "refs/heads/main"
+      })
+    });
+
+    const client = new AzureDevOpsClient({ pat: "pat", fetchImpl: fetchMock });
+    const metadata = await client.getPullRequestMetadata(sampleContext.ref);
+
+    expect(metadata.description).toBe("feature removed");
   });
 
   it("posts approved comments", async () => {
