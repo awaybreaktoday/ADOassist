@@ -15,6 +15,18 @@ npm install
 npm run build
 ```
 
+To install the `ado-assist` command locally from this checkout:
+
+```bash
+npm link
+```
+
+Or install it globally from this directory:
+
+```bash
+npm install -g .
+```
+
 ## Configuration
 
 For OpenAI:
@@ -46,6 +58,16 @@ export ADO_ASSIST_REVIEW_EMPHASIS="general,standards,risk"
 `ADO_ASSIST_AZURE_DEVOPS_ORG` is optional when using a full PR URL because the organization is parsed from the URL. It is required when using the shorthand review flags.
 
 ## Usage
+
+After `npm link` or `npm install -g .`:
+
+```bash
+ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123"
+ado-assist review --project project --repo repo --pr 123
+ado-assist post "reviews/org-project-repo-pr-123.md"
+```
+
+During local development:
 
 ```bash
 npm run dev -- review "https://dev.azure.com/org/project/_git/repo/pullrequest/123"
