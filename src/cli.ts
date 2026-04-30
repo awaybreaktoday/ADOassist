@@ -1,9 +1,11 @@
 import { Command } from "commander";
 import { AzureDevOpsClient } from "./azureDevOps/client.js";
 import { loadAzureDevOpsConfigFromEnv, loadConfigFromEnv } from "./config.js";
+import { createLocalReviewDraft } from "./commands/local.js";
 import { postReviewDraftFile } from "./commands/post.js";
 import { listOpenPullRequests, resolveLimit, reviewOpenPullRequests } from "./commands/prs.js";
 import { createReviewDraft, resolveReviewMode } from "./commands/review.js";
+import { GitClient } from "./git/client.js";
 import { createReviewProvider } from "./providers/factory.js";
 
 export function createCli(): Command {
@@ -39,6 +41,25 @@ export function createCli(): Command {
         console.log(`Review draft written to ${filename}`);
       }
     );
+
+  program
+    .command("review-local")
+    .description("Review local branch changes against a target branch and draft a suggested PR")
+    .option("--target <branch>", "target branch to compare against", "origin/main")
+    .option("--mode <mode>", "review mode: full, code, quality, or risk")
+    .action(async (options: { target: string; mode?: string }) => {
+      const config = loadConfigFromEnv();
+      const provider = createReviewProvider(config);
+      const git = new GitClient();
+      const filename = await createLocalReviewDraft({
+        targetBranch: options.target,
+        mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
+        config,
+        git,
+        provider
+      });
+      console.log(`Local review draft written to ${filename}`);
+    });
 
   program
     .command("prs")

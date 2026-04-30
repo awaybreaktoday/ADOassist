@@ -98,6 +98,7 @@ ado-assist review --project project --repo repo --pr 123
 ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123" --mode quality
 ado-assist prs --project project --repo repo
 ado-assist review-open --project project --repo repo --mode quality --limit 5
+ado-assist review-local --target origin/main --mode full
 ado-assist post "reviews/org-project-repo-pr-123.md"
 ```
 
@@ -109,12 +110,15 @@ npm run dev -- review --project project --repo repo --pr 123
 npm run dev -- review "https://dev.azure.com/org/project/_git/repo/pullrequest/123" --mode risk
 npm run dev -- prs --project project --repo repo
 npm run dev -- review-open --project project --repo repo --mode quality --limit 5
+npm run dev -- review-local --target origin/main --mode full
 npm run dev -- post "reviews/org-project-repo-pr-123.md"
 ```
 
 The `review` command writes a Markdown draft under `reviews/`. The shorthand form uses `ADO_ASSIST_AZURE_DEVOPS_ORG` for the organization. Edit the approved JSON block to remove comments you do not want posted, then run `post`.
 
 The `prs` command lists active pull requests for a configured organization, project, and repository. The `review-open` command creates review drafts for active PRs in that repository and never posts comments automatically. Use `--limit` to review only the first few active PRs.
+
+The `review-local` command reviews the current git branch against a target branch, defaults to `origin/main`, and writes a local pre-PR draft with suggested title, description, risk summary, and review findings. It does not create an Azure DevOps pull request yet; use it before opening a PR to check correctness and improve the PR description.
 
 Use `--mode` to choose the review focus:
 
