@@ -10,21 +10,64 @@ Deleted files and binary files are skipped in the first implementation. Large PR
 
 ## Install
 
+### Prerequisites
+
+- Node.js 20 or newer
+- npm
+- git
+- An Azure DevOps PAT with Code read access for drafting reviews, and Code write access if you want to post comments
+- One configured model provider: OpenAI, Azure OpenAI, Anthropic Claude, Google Gemini, or an OpenAI-compatible server such as llama.cpp
+
+### Install From GitHub
+
+Install the command directly from this public repository:
+
 ```bash
+npm install -g github:awaybreaktoday/ADOassist
+ado-assist --version
+```
+
+To update later, rerun the same install command:
+
+```bash
+npm install -g github:awaybreaktoday/ADOassist
+```
+
+### Install From A Local Checkout
+
+```bash
+git clone https://github.com/awaybreaktoday/ADOassist.git
+cd ADOassist
 npm install
 npm run build
 ```
 
-To install the `ado-assist` command locally from this checkout:
+To expose the `ado-assist` command from this checkout while developing:
 
 ```bash
 npm link
 ```
 
-Or install it globally from this directory:
+Or install the built checkout globally:
 
 ```bash
 npm install -g .
+```
+
+### Development Only
+
+If you do not want to install the command globally, run it through npm:
+
+```bash
+npm run dev -- --help
+npm run dev -- review-local --target origin/main --mode full
+```
+
+After `npm link`, `npm install -g .`, or the GitHub install, use the command directly:
+
+```bash
+ado-assist --help
+ado-assist review-local --target origin/main --mode full
 ```
 
 ## Configuration
@@ -88,9 +131,24 @@ export ADO_ASSIST_OPENAI_COMPAT_API_KEY="..."
 
 `ADO_ASSIST_OPENAI_COMPAT_API_KEY` is optional because many local model servers do not require authentication. Include `/v1` in `ADO_ASSIST_OPENAI_COMPAT_BASE_URL` for llama.cpp and other servers that expose OpenAI-compatible routes under that prefix.
 
+### Windows PowerShell
+
+Use PowerShell environment variables instead of `export`:
+
+```powershell
+$env:ADO_ASSIST_AZURE_DEVOPS_PAT = "..."
+$env:ADO_ASSIST_AZURE_DEVOPS_ORG = "org"
+$env:ADO_ASSIST_PROVIDER = "openai-compatible"
+$env:ADO_ASSIST_OPENAI_COMPAT_BASE_URL = "http://127.0.0.1:8080/v1"
+$env:ADO_ASSIST_OPENAI_COMPAT_MODEL = "local-model"
+ado-assist --help
+```
+
+The variables above last for the current terminal session. Put them in your PowerShell profile or another secret manager if you want a persistent setup.
+
 ## Usage
 
-After `npm link` or `npm install -g .`:
+After installing the command:
 
 ```bash
 ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123"
