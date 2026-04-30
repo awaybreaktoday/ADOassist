@@ -23,14 +23,14 @@ Deleted files and binary files are skipped in the first implementation. Large PR
 Install the command directly from this public repository:
 
 ```bash
-npm install -g github:awaybreaktoday/ADOassist
+npm install -g https://github.com/awaybreaktoday/ADOassist/archive/refs/heads/main.tar.gz
 ado-assist --version
 ```
 
 To update later, rerun the same install command:
 
 ```bash
-npm install -g github:awaybreaktoday/ADOassist
+npm install -g https://github.com/awaybreaktoday/ADOassist/archive/refs/heads/main.tar.gz
 ```
 
 ### Install From A Local Checkout
@@ -280,7 +280,7 @@ When using hosted model providers, PR metadata and diffs are sent to the configu
 
 ## Verification
 
-`dist/` is committed so `npm install -g github:awaybreaktoday/ADOassist` can install without compiling TypeScript in npm's temporary git dependency directory. Run `npm run build` and include the generated `dist/` changes whenever CLI source changes.
+`dist/` is committed so GitHub installs can run without compiling TypeScript in npm's temporary install directory. Run `npm run build` and include the generated `dist/` changes whenever CLI source changes.
 
 ```bash
 npm test
