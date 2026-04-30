@@ -55,4 +55,21 @@ describe("review draft format and parse", () => {
 
     expect(parsed.comments).toEqual(sampleReview.comments);
   });
+
+  it("round-trips comments that contain Markdown fences", () => {
+    const review = {
+      ...sampleReview,
+      comments: [
+        {
+          ...sampleReview.comments[0],
+          message: "Consider this example:\n```ts\nretry();\n```"
+        }
+      ]
+    };
+
+    const draft = formatReviewDraft(sampleContext, review);
+    const parsed = parseReviewDraft(draft);
+
+    expect(parsed.comments).toEqual(review.comments);
+  });
 });

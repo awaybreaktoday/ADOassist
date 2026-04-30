@@ -29,7 +29,9 @@ export interface ParsedReviewDraft {
 }
 
 export function parseReviewDraft(markdown: string): ParsedReviewDraft {
-  const match = markdown.match(/```json ado-assist-approved-comments\r?\n([\s\S]*?)(?:\r?\n)?```/);
+  const match = markdown.match(
+    /^```json ado-assist-approved-comments\r?\n([\s\S]*?)(?:\r?\n)?```[ \t]*$/m
+  );
   if (!match) {
     throw new AppError("Review draft is missing approved comments JSON");
   }
