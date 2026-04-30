@@ -1,6 +1,12 @@
 import { Command } from "commander";
 import { AzureDevOpsClient } from "./azureDevOps/client.js";
-import { loadAzureDevOpsConfigFromEnv, loadConfigFromEnv } from "./config.js";
+import {
+  defaultUserConfigPath,
+  initUserConfig,
+  loadAzureDevOpsConfigFromFileAndEnv,
+  loadConfigFromFileAndEnv,
+  loadUserConfigFile
+} from "./config.js";
 import { createLocalReviewDraft } from "./commands/local.js";
 import { postReviewDraftFile } from "./commands/post.js";
 import { listOpenPullRequests, resolveLimit, reviewOpenPullRequests } from "./commands/prs.js";
@@ -14,7 +20,13 @@ export function createCli(): Command {
   program
     .name("ado-assist")
     .description("Draft and post AI-assisted Azure DevOps PR review comments")
-    .version("0.1.0");
+    .version("0.1.0")
+    .option("--config <file>", "path to the user config file");
+
+  const selectedConfigPath = (): string => {
+    const options = program.opts<{ config?: string }>();
+    return options.config ?? defaultUserConfigPath();
+  };
 
   program
     .command("review")
@@ -29,7 +41,7 @@ export function createCli(): Command {
         prUrl: string | undefined,
         options: { project?: string; repo?: string; pr?: string; mode?: string; output?: string }
       ) => {
-        const config = loadConfigFromEnv();
+        const config = await loadConfigFromFileAndEnv(selectedConfigPath());
         const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
         const provider = createReviewProvider(config);
         const filename = await createReviewDraft({
@@ -51,7 +63,7 @@ export function createCli(): Command {
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--output <dir>", "directory for generated review drafts")
     .action(async (options: { target: string; mode?: string; output?: string }) => {
-      const config = loadConfigFromEnv();
+      const config = await loadConfigFromFileAndEnv(selectedConfigPath());
       const provider = createReviewProvider(config);
       const git = new GitClient();
       const filename = await createLocalReviewDraft({
@@ -71,7 +83,7 @@ export function createCli(): Command {
     .requiredOption("--project <project>")
     .requiredOption("--repo <repo>")
     .action(async (options: { project: string; repo: string }) => {
-      const azureDevOps = loadAzureDevOpsConfigFromEnv();
+      const azureDevOps = await loadAzureDevOpsConfigFromFileAndEnv(selectedConfigPath());
       const client = new AzureDevOpsClient({ pat: azureDevOps.pat });
       const pullRequests = await listOpenPullRequests({
         target: { project: options.project, repo: options.repo },
@@ -101,7 +113,7 @@ export function createCli(): Command {
     .option("--limit <count>", "maximum number of open pull requests to review")
     .option("--output <dir>", "directory for generated review drafts")
     .action(async (options: { project: string; repo: string; mode?: string; limit?: string; output?: string }) => {
-      const config = loadConfigFromEnv();
+      const config = await loadConfigFromFileAndEnv(selectedConfigPath());
       const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
       const provider = createReviewProvider(config);
       const filenames = await reviewOpenPullRequests({
@@ -128,10 +140,36 @@ export function createCli(): Command {
     .command("post")
     .argument("<review-file>")
     .action(async (reviewFile: string) => {
-      const azureDevOps = loadAzureDevOpsConfigFromEnv();
+      const azureDevOps = await loadAzureDevOpsConfigFromFileAndEnv(selectedConfigPath());
       const client = new AzureDevOpsClient({ pat: azureDevOps.pat });
       const count = await postReviewDraftFile(reviewFile, client);
       console.log(`Posted ${count} approved comment${count === 1 ? "" : "s"}`);
+    });
+
+  const config = program.command("config").description("Manage ADO Assist user configuration");
+
+  config
+    .command("path")
+    .description("Print the active user config file path")
+    .action(() => {
+      console.log(selectedConfigPath());
+    });
+
+  config
+    .command("init")
+    .description("Create a sample non-secret user config file")
+    .action(async () => {
+      const filename = await initUserConfig(selectedConfigPath());
+      console.log(`Config written to ${filename}`);
+    });
+
+  config
+    .command("show")
+    .description("Print the non-secret user config file contents")
+    .action(async () => {
+      const filename = selectedConfigPath();
+      const userConfig = await loadUserConfigFile(filename);
+      console.log(JSON.stringify({ path: filename, config: userConfig }, null, 2));
     });
 
   return program;

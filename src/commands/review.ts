@@ -41,7 +41,7 @@ export async function createReviewDraft(options: ReviewCommandOptions): Promise<
     provider: options.provider
   });
   const markdown = formatReviewDraft(context, review);
-  const filename = reviewDraftFilename(context, resolveReviewOutputDir(options.outputDir));
+  const filename = reviewDraftFilename(context, resolveReviewOutputDir(options.outputDir ?? options.config.outputDir));
 
   await mkdir(dirname(filename), { recursive: true });
   await writeFile(filename, markdown, "utf8");

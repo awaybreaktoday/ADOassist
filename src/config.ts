@@ -1,7 +1,33 @@
+import { constants } from "node:fs";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir, platform as currentPlatform } from "node:os";
+import { dirname, posix, win32 } from "node:path";
 import { AppError } from "./errors.js";
 import type { AppConfig, ProviderConfig, ReviewEmphasis } from "./types.js";
 
 type Env = Record<string, string | undefined>;
+type UserProviderConfig =
+  | { kind?: "openai"; model?: string; apiKey?: string }
+  | { kind?: "azure-openai"; endpoint?: string; deployment?: string; apiKey?: string }
+  | { kind?: "anthropic"; model?: string; maxTokens?: number; apiKey?: string }
+  | { kind?: "gemini"; model?: string; apiKey?: string }
+  | { kind?: "openai-compatible"; baseUrl?: string; model?: string; apiKey?: string };
+export interface UserConfig {
+  azureDevOps?: {
+    organization?: string;
+    pat?: string;
+  };
+  provider?: UserProviderConfig;
+  review?: {
+    emphasis?: ReviewEmphasis[];
+    outputDir?: string;
+  };
+}
+interface UserConfigPathOptions {
+  platform?: NodeJS.Platform;
+  env?: Env;
+  homeDir?: string;
+}
 type OpenAIEnv = Env & { ADO_ASSIST_PROVIDER: "openai" };
 type AzureOpenAIEnv = Env & { ADO_ASSIST_PROVIDER: "azure-openai" };
 type AnthropicEnv = Env & { ADO_ASSIST_PROVIDER: "anthropic" };
@@ -10,6 +36,19 @@ type OpenAICompatibleEnv = Env & { ADO_ASSIST_PROVIDER: "openai-compatible" };
 
 const DEFAULT_EMPHASIS: ReviewEmphasis[] = ["general", "standards", "quality", "risk"];
 const VALID_EMPHASIS = new Set<ReviewEmphasis>(["general", "standards", "quality", "risk"]);
+const SAMPLE_USER_CONFIG: UserConfig = {
+  azureDevOps: {
+    organization: "your-org"
+  },
+  provider: {
+    kind: "openai-compatible",
+    baseUrl: "http://127.0.0.1:8080/v1",
+    model: "local-model"
+  },
+  review: {
+    emphasis: ["general", "standards", "quality", "risk"]
+  }
+};
 
 function requireValue(env: Env, name: string): string {
   const value = env[name]?.trim();
@@ -19,7 +58,31 @@ function requireValue(env: Env, name: string): string {
   return value;
 }
 
-function parseReviewEmphasis(value: string | undefined): ReviewEmphasis[] {
+function firstValue(...values: Array<string | undefined>): string | undefined {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return undefined;
+}
+
+function requireResolvedValue(name: string, ...values: Array<string | undefined>): string {
+  const value = firstValue(...values);
+  if (!value) {
+    throw new AppError(`${name} is required`);
+  }
+  return value;
+}
+
+function parseReviewEmphasis(value: string | ReviewEmphasis[] | undefined): ReviewEmphasis[] {
+  if (Array.isArray(value)) {
+    validateReviewEmphasis(value);
+    return [...value];
+  }
+
   if (!value?.trim()) {
     return [...DEFAULT_EMPHASIS];
   }
@@ -29,13 +92,16 @@ function parseReviewEmphasis(value: string | undefined): ReviewEmphasis[] {
     .map((part) => part.trim())
     .filter(Boolean);
 
-  for (const part of parsed) {
+  validateReviewEmphasis(parsed);
+  return parsed as ReviewEmphasis[];
+}
+
+function validateReviewEmphasis(value: string[]): void {
+  for (const part of value) {
     if (!VALID_EMPHASIS.has(part as ReviewEmphasis)) {
       throw new AppError(`Invalid ADO_ASSIST_REVIEW_EMPHASIS value: ${part}`);
     }
   }
-
-  return parsed as ReviewEmphasis[];
 }
 
 function optionalPositiveInteger(env: Env, name: string, defaultValue: number): number {
@@ -69,8 +135,18 @@ export function loadConfigFromEnv(
 ): AppConfig & { provider: Extract<ProviderConfig, { kind: "openai-compatible" }> };
 export function loadConfigFromEnv(env?: Env): AppConfig;
 export function loadConfigFromEnv(env: Env = process.env): AppConfig {
-  const azureDevOps = loadAzureDevOpsConfigFromEnv(env);
-  const providerKind = requireValue(env, "ADO_ASSIST_PROVIDER");
+  return loadConfig({}, env);
+}
+
+export function loadConfig(userConfig: UserConfig = {}, env: Env = process.env): AppConfig {
+  rejectSecretConfig(userConfig);
+
+  const azureDevOps = loadAzureDevOpsConfig(userConfig, env);
+  const providerKind = requireResolvedValue(
+    "ADO_ASSIST_PROVIDER",
+    env.ADO_ASSIST_PROVIDER,
+    userConfig.provider?.kind
+  );
 
   if (providerKind === "openai") {
     return {
@@ -78,9 +154,14 @@ export function loadConfigFromEnv(env: Env = process.env): AppConfig {
       provider: {
         kind: "openai",
         apiKey: requireValue(env, "ADO_ASSIST_OPENAI_API_KEY"),
-        model: requireValue(env, "ADO_ASSIST_OPENAI_MODEL")
+        model: requireResolvedValue(
+          "ADO_ASSIST_OPENAI_MODEL",
+          env.ADO_ASSIST_OPENAI_MODEL,
+          userProviderValue(userConfig, "model")
+        )
       },
-      reviewEmphasis: parseReviewEmphasis(env.ADO_ASSIST_REVIEW_EMPHASIS)
+      reviewEmphasis: loadReviewEmphasis(userConfig, env),
+      outputDir: loadOutputDir(userConfig, env)
     };
   }
 
@@ -90,10 +171,19 @@ export function loadConfigFromEnv(env: Env = process.env): AppConfig {
       provider: {
         kind: "azure-openai",
         apiKey: requireValue(env, "ADO_ASSIST_AZURE_OPENAI_API_KEY"),
-        endpoint: requireValue(env, "ADO_ASSIST_AZURE_OPENAI_ENDPOINT"),
-        deployment: requireValue(env, "ADO_ASSIST_AZURE_OPENAI_DEPLOYMENT")
+        endpoint: requireResolvedValue(
+          "ADO_ASSIST_AZURE_OPENAI_ENDPOINT",
+          env.ADO_ASSIST_AZURE_OPENAI_ENDPOINT,
+          userProviderValue(userConfig, "endpoint")
+        ),
+        deployment: requireResolvedValue(
+          "ADO_ASSIST_AZURE_OPENAI_DEPLOYMENT",
+          env.ADO_ASSIST_AZURE_OPENAI_DEPLOYMENT,
+          userProviderValue(userConfig, "deployment")
+        )
       },
-      reviewEmphasis: parseReviewEmphasis(env.ADO_ASSIST_REVIEW_EMPHASIS)
+      reviewEmphasis: loadReviewEmphasis(userConfig, env),
+      outputDir: loadOutputDir(userConfig, env)
     };
   }
 
@@ -103,10 +193,19 @@ export function loadConfigFromEnv(env: Env = process.env): AppConfig {
       provider: {
         kind: "anthropic",
         apiKey: requireValue(env, "ADO_ASSIST_ANTHROPIC_API_KEY"),
-        model: requireValue(env, "ADO_ASSIST_ANTHROPIC_MODEL"),
-        maxTokens: optionalPositiveInteger(env, "ADO_ASSIST_ANTHROPIC_MAX_TOKENS", 4096)
+        model: requireResolvedValue(
+          "ADO_ASSIST_ANTHROPIC_MODEL",
+          env.ADO_ASSIST_ANTHROPIC_MODEL,
+          userProviderValue(userConfig, "model")
+        ),
+        maxTokens: optionalPositiveInteger(
+          env,
+          "ADO_ASSIST_ANTHROPIC_MAX_TOKENS",
+          userProviderNumber(userConfig, "maxTokens") ?? 4096
+        )
       },
-      reviewEmphasis: parseReviewEmphasis(env.ADO_ASSIST_REVIEW_EMPHASIS)
+      reviewEmphasis: loadReviewEmphasis(userConfig, env),
+      outputDir: loadOutputDir(userConfig, env)
     };
   }
 
@@ -116,9 +215,14 @@ export function loadConfigFromEnv(env: Env = process.env): AppConfig {
       provider: {
         kind: "gemini",
         apiKey: requireValue(env, "ADO_ASSIST_GEMINI_API_KEY"),
-        model: requireValue(env, "ADO_ASSIST_GEMINI_MODEL")
+        model: requireResolvedValue(
+          "ADO_ASSIST_GEMINI_MODEL",
+          env.ADO_ASSIST_GEMINI_MODEL,
+          userProviderValue(userConfig, "model")
+        )
       },
-      reviewEmphasis: parseReviewEmphasis(env.ADO_ASSIST_REVIEW_EMPHASIS)
+      reviewEmphasis: loadReviewEmphasis(userConfig, env),
+      outputDir: loadOutputDir(userConfig, env)
     };
   }
 
@@ -127,11 +231,20 @@ export function loadConfigFromEnv(env: Env = process.env): AppConfig {
       azureDevOps,
       provider: {
         kind: "openai-compatible",
-        baseUrl: requireValue(env, "ADO_ASSIST_OPENAI_COMPAT_BASE_URL"),
-        model: requireValue(env, "ADO_ASSIST_OPENAI_COMPAT_MODEL"),
+        baseUrl: requireResolvedValue(
+          "ADO_ASSIST_OPENAI_COMPAT_BASE_URL",
+          env.ADO_ASSIST_OPENAI_COMPAT_BASE_URL,
+          userProviderValue(userConfig, "baseUrl")
+        ),
+        model: requireResolvedValue(
+          "ADO_ASSIST_OPENAI_COMPAT_MODEL",
+          env.ADO_ASSIST_OPENAI_COMPAT_MODEL,
+          userProviderValue(userConfig, "model")
+        ),
         apiKey: env.ADO_ASSIST_OPENAI_COMPAT_API_KEY?.trim() || undefined
       },
-      reviewEmphasis: parseReviewEmphasis(env.ADO_ASSIST_REVIEW_EMPHASIS)
+      reviewEmphasis: loadReviewEmphasis(userConfig, env),
+      outputDir: loadOutputDir(userConfig, env)
     };
   }
 
@@ -139,8 +252,152 @@ export function loadConfigFromEnv(env: Env = process.env): AppConfig {
 }
 
 export function loadAzureDevOpsConfigFromEnv(env: Env = process.env): AppConfig["azureDevOps"] {
+  return loadAzureDevOpsConfig({}, env);
+}
+
+export function loadAzureDevOpsConfig(userConfig: UserConfig = {}, env: Env = process.env): AppConfig["azureDevOps"] {
+  rejectSecretConfig(userConfig);
   return {
     pat: requireValue(env, "ADO_ASSIST_AZURE_DEVOPS_PAT"),
-    organization: env.ADO_ASSIST_AZURE_DEVOPS_ORG?.trim() || undefined
+    organization: firstValue(env.ADO_ASSIST_AZURE_DEVOPS_ORG, userConfig.azureDevOps?.organization)
   };
+}
+
+export async function loadUserConfigFile(filename = defaultUserConfigPath()): Promise<UserConfig> {
+  try {
+    await access(filename, constants.F_OK);
+  } catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") {
+      return {};
+    }
+    throw error;
+  }
+
+  const content = await readFile(filename, "utf8");
+  return parseUserConfig(content, filename);
+}
+
+export async function loadConfigFromFileAndEnv(
+  filename = defaultUserConfigPath(),
+  env: Env = process.env
+): Promise<AppConfig> {
+  return loadConfig(await loadUserConfigFile(filename), env);
+}
+
+export async function loadAzureDevOpsConfigFromFileAndEnv(
+  filename = defaultUserConfigPath(),
+  env: Env = process.env
+): Promise<AppConfig["azureDevOps"]> {
+  return loadAzureDevOpsConfig(await loadUserConfigFile(filename), env);
+}
+
+export async function initUserConfig(filename = defaultUserConfigPath()): Promise<string> {
+  try {
+    await access(filename, constants.F_OK);
+    throw new AppError(`Config file already exists: ${filename}`);
+  } catch (error) {
+    if (!isNodeError(error) || error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  await mkdir(dirname(filename), { recursive: true });
+  await writeFile(filename, `${JSON.stringify(SAMPLE_USER_CONFIG, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600
+  });
+  return filename;
+}
+
+export function defaultUserConfigPath(options: UserConfigPathOptions = {}): string {
+  const runtimePlatform = options.platform ?? currentPlatform();
+  const env = options.env ?? process.env;
+  const home = options.homeDir ?? homedir();
+
+  if (runtimePlatform === "darwin") {
+    return posix.join(home, "Library", "Application Support", "ado-assist", "config.json");
+  }
+
+  if (runtimePlatform === "win32") {
+    return win32.join(
+      env.APPDATA?.trim() || win32.join(home, "AppData", "Roaming"),
+      "ado-assist",
+      "config.json"
+    );
+  }
+
+  return posix.join(env.XDG_CONFIG_HOME?.trim() || posix.join(home, ".config"), "ado-assist", "config.json");
+}
+
+export function redactConfig(config: AppConfig): AppConfig {
+  return {
+    ...config,
+    azureDevOps: {
+      ...config.azureDevOps,
+      pat: "<redacted>"
+    },
+    provider: redactProviderConfig(config.provider),
+    reviewEmphasis: [...config.reviewEmphasis]
+  };
+}
+
+function redactProviderConfig(provider: ProviderConfig): ProviderConfig {
+  if ("apiKey" in provider && provider.apiKey !== undefined) {
+    return { ...provider, apiKey: "<redacted>" } as ProviderConfig;
+  }
+
+  return { ...provider };
+}
+
+function loadReviewEmphasis(userConfig: UserConfig, env: Env): ReviewEmphasis[] {
+  return parseReviewEmphasis(env.ADO_ASSIST_REVIEW_EMPHASIS ?? userConfig.review?.emphasis);
+}
+
+function loadOutputDir(userConfig: UserConfig, env: Env): string | undefined {
+  return firstValue(env.ADO_ASSIST_OUTPUT_DIR, userConfig.review?.outputDir);
+}
+
+function userProviderValue(userConfig: UserConfig, key: string): string | undefined {
+  const provider = userConfig.provider as Record<string, unknown> | undefined;
+  const value = provider?.[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function userProviderNumber(userConfig: UserConfig, key: string): number | undefined {
+  const provider = userConfig.provider as Record<string, unknown> | undefined;
+  const value = provider?.[key];
+  return typeof value === "number" ? value : undefined;
+}
+
+function rejectSecretConfig(config: UserConfig): void {
+  if (config.azureDevOps?.pat) {
+    throw new AppError("Do not store secrets in the ADO Assist config file");
+  }
+
+  const provider = config.provider as Record<string, unknown> | undefined;
+  if (provider?.apiKey) {
+    throw new AppError("Do not store secrets in the ADO Assist config file");
+  }
+}
+
+function parseUserConfig(content: string, filename: string): UserConfig {
+  try {
+    const parsed = JSON.parse(content) as unknown;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new AppError(`Config file must contain a JSON object: ${filename}`);
+    }
+
+    const config = parsed as UserConfig;
+    rejectSecretConfig(config);
+    return config;
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new AppError(`Unable to parse config file: ${filename}`);
+  }
+}
+
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error;
 }

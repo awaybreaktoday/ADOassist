@@ -38,6 +38,7 @@ export interface AppConfig {
   };
   provider: ProviderConfig;
   reviewEmphasis: ReviewEmphasis[];
+  outputDir?: string;
 }
 
 export interface PullRequestRef {

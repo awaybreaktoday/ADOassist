@@ -72,6 +72,65 @@ ado-assist review-local --target origin/main --mode full
 
 ## Configuration
 
+ADO Assist supports both a user config file and environment variables.
+
+Configuration precedence is:
+
+1. CLI flags such as `--output`
+2. Environment variables
+3. User config file
+4. Built-in defaults
+
+Secrets should stay in environment variables. The user config file is intended for non-secret defaults such as organization, provider kind, local model URL, model name, review emphasis, and output directory.
+
+### User Config File
+
+Create a sample config file:
+
+```bash
+ado-assist config init
+ado-assist config path
+ado-assist config show
+```
+
+Default config file locations:
+
+- macOS: `~/Library/Application Support/ado-assist/config.json`
+- Windows: `%APPDATA%\ado-assist\config.json`
+- Linux: `$XDG_CONFIG_HOME/ado-assist/config.json`, or `~/.config/ado-assist/config.json` when `XDG_CONFIG_HOME` is not set
+
+Use a different config file for one command with the global `--config` option:
+
+```bash
+ado-assist --config ./ado-assist.config.json config show
+ado-assist --config ./ado-assist.config.json review-local --target origin/main
+```
+
+Example non-secret config:
+
+```json
+{
+  "azureDevOps": {
+    "organization": "org"
+  },
+  "provider": {
+    "kind": "openai-compatible",
+    "baseUrl": "http://127.0.0.1:8080/v1",
+    "model": "local-model"
+  },
+  "review": {
+    "emphasis": ["general", "standards", "quality", "risk"],
+    "outputDir": "/home/you/.ado-assist/reviews"
+  }
+}
+```
+
+Use an absolute path for `review.outputDir`; the config file does not expand shell shortcuts such as `~`.
+
+Do not put PATs or API keys in the config file. ADO Assist rejects known secret fields such as `azureDevOps.pat` and provider `apiKey`.
+
+### Environment Variables
+
 For OpenAI:
 
 ```bash

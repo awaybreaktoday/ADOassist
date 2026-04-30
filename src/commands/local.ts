@@ -40,7 +40,7 @@ export async function createLocalReviewDraft(options: LocalReviewCommandOptions)
   const filename = localReviewDraftFilename(
     sourceBranch,
     options.targetBranch,
-    resolveReviewOutputDir(options.outputDir)
+    resolveReviewOutputDir(options.outputDir ?? options.config.outputDir)
   );
 
   await mkdir(dirname(filename), { recursive: true });
