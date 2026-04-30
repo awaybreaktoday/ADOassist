@@ -280,6 +280,8 @@ When using hosted model providers, PR metadata and diffs are sent to the configu
 
 ## Verification
 
+`dist/` is committed so `npm install -g github:awaybreaktoday/ADOassist` can install without compiling TypeScript in npm's temporary git dependency directory. Run `npm run build` and include the generated `dist/` changes whenever CLI source changes.
+
 ```bash
 npm test
 npm run typecheck
