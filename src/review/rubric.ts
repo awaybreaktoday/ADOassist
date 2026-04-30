@@ -43,6 +43,7 @@ export function buildReviewRubric(emphasis: ReviewEmphasis[]): string {
   if (emphasis.includes("quality")) {
     sections.push(
       "Mode: quality. Review PR quality and coverage gaps. Use general PR comments for these findings unless a specific changed line is the best anchor.",
+      "Do not return inline comments in quality mode. Omit filePath and line for every quality-mode comment.",
       "Flag vague or missing PR description details, especially when the change affects infrastructure, security, data, or production behavior.",
       "Look for missing validation, tests, rollout, rollback, monitoring, documentation, and operational-impact notes."
     );

@@ -26,6 +26,7 @@ describe("buildReviewRubric", () => {
     expect(rubric).toContain("Mode: quality");
     expect(rubric).toContain("PR description");
     expect(rubric).toContain("validation, tests, rollout, rollback");
+    expect(rubric).toContain("Do not return inline comments in quality mode");
   });
 
   it("adds mode-specific instructions for code mode", () => {

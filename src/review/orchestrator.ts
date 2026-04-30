@@ -16,7 +16,7 @@ export async function reviewPullRequest(options: ReviewPullRequestOptions): Prom
     pullRequest: options.context,
     rubric
   });
-  const normalizedResult = normalizeReviewResult(result);
+  const normalizedResult = normalizeReviewResult(result, isQualityOnlyMode(options.emphasis));
 
   validateReviewResult(normalizedResult, changedFiles);
   return normalizedResult;
@@ -35,18 +35,18 @@ function validateReviewResult(result: ReviewResult, changedFiles: Set<string>): 
   }
 }
 
-function normalizeReviewResult(result: ReviewResult): ReviewResult {
+function normalizeReviewResult(result: ReviewResult, forceGeneralComments: boolean): ReviewResult {
   if (!isRecord(result) || !Array.isArray(result.comments)) {
     return result;
   }
 
   return {
     ...result,
-    comments: result.comments.map(normalizeReviewComment)
+    comments: result.comments.map((comment) => normalizeReviewComment(comment, forceGeneralComments))
   };
 }
 
-function normalizeReviewComment(comment: ReviewComment): ReviewComment {
+function normalizeReviewComment(comment: ReviewComment, forceGeneralComment: boolean): ReviewComment {
   if (!isRecord(comment)) {
     return comment;
   }
@@ -55,7 +55,7 @@ function normalizeReviewComment(comment: ReviewComment): ReviewComment {
   const filePath = optionalString(normalized.filePath);
   const suggestion = optionalString(normalized.suggestion);
 
-  if (filePath === undefined) {
+  if (forceGeneralComment || filePath === undefined) {
     delete normalized.filePath;
     delete normalized.line;
   } else {
@@ -69,6 +69,10 @@ function normalizeReviewComment(comment: ReviewComment): ReviewComment {
   }
 
   return normalized as unknown as ReviewComment;
+}
+
+function isQualityOnlyMode(emphasis: ReviewEmphasis[]): boolean {
+  return emphasis.length === 1 && emphasis[0] === "quality";
 }
 
 function reviewResultValidationError(value: unknown): string | undefined {

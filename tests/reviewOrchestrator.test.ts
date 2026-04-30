@@ -132,6 +132,40 @@ describe("reviewPullRequest", () => {
     ]);
   });
 
+  it("forces provider comments to be general comments in quality-only mode", async () => {
+    const result = await reviewPullRequest({
+      context: sampleContext,
+      emphasis: ["quality"],
+      provider: {
+        name: "mock",
+        async reviewPullRequest() {
+          return {
+            ...sampleReview,
+            comments: [
+              {
+                id: "quality-gap",
+                filePath: "/src/payments/retry.ts",
+                line: 2,
+                severity: "warning",
+                category: "standards",
+                message: "The PR description does not explain validation evidence."
+              }
+            ]
+          };
+        }
+      }
+    });
+
+    expect(result.comments).toEqual([
+      {
+        id: "quality-gap",
+        severity: "warning",
+        category: "standards",
+        message: "The PR description does not explain validation evidence."
+      }
+    ]);
+  });
+
   it("rejects inline comments without a positive line with the comment path", async () => {
     await expect(
       reviewPullRequest({
