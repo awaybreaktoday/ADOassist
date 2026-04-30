@@ -5,6 +5,7 @@ import { AppError } from "../errors.js";
 import type { ReviewProvider } from "../providers/types.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
 import { reviewEmphasisForMode } from "../review/rubric.js";
+import { resolveReviewOutputDir } from "../storage/paths.js";
 import type { AppConfig, ChangedFile, PullRequestContext, ReviewMode } from "../types.js";
 
 export interface LocalGitClient {
@@ -36,7 +37,11 @@ export async function createLocalReviewDraft(options: LocalReviewCommandOptions)
     provider: options.provider
   });
   const markdown = formatLocalReviewDraft(context, review);
-  const filename = localReviewDraftFilename(sourceBranch, options.targetBranch, options.outputDir);
+  const filename = localReviewDraftFilename(
+    sourceBranch,
+    options.targetBranch,
+    resolveReviewOutputDir(options.outputDir)
+  );
 
   await mkdir(dirname(filename), { recursive: true });
   await writeFile(filename, markdown, "utf8");

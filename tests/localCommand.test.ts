@@ -24,7 +24,7 @@ afterEach(async () => {
 describe("localReviewDraftFilename", () => {
   it("encodes local branch and target names", () => {
     expect(localReviewDraftFilename("feature/aks-upgrade", "origin/main")).toBe(
-      "reviews/local-feature%2Faks-upgrade-to-origin%2Fmain.md"
+      join("reviews", "local-feature%2Faks-upgrade-to-origin%2Fmain.md")
     );
   });
 });

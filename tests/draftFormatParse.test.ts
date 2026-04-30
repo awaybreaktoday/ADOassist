@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { join } from "node:path";
 import { formatReviewDraft, reviewDraftFilename } from "../src/drafts/format.js";
 import { parseReviewDraft } from "../src/drafts/parse.js";
 import { sampleContext, sampleReview } from "./fixtures/sampleReview.js";
@@ -38,7 +39,7 @@ describe("review draft format and parse", () => {
       }
     });
 
-    expect(filename).toBe("reviews/..%2Facme-Pay%2Fments-api%20service-pr-42.md");
+    expect(filename).toBe(join("reviews", "..%2Facme-Pay%2Fments-api%20service-pr-42.md"));
   });
 
   it("rejects unexpected edited JSON fields", () => {

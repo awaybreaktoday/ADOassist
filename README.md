@@ -122,12 +122,15 @@ Optional:
 
 ```bash
 export ADO_ASSIST_AZURE_DEVOPS_ORG="org"
+export ADO_ASSIST_OUTPUT_DIR="$HOME/.local/share/ado-assist/reviews"
 export ADO_ASSIST_REVIEW_EMPHASIS="general,standards,quality,risk"
 export ADO_ASSIST_ANTHROPIC_MAX_TOKENS="4096"
 export ADO_ASSIST_OPENAI_COMPAT_API_KEY="..."
 ```
 
 `ADO_ASSIST_AZURE_DEVOPS_ORG` is optional when using a full PR URL because the organization is parsed from the URL. It is required when using the shorthand review flags.
+
+`ADO_ASSIST_OUTPUT_DIR` overrides where generated review Markdown files are written. If it is not set, ADO Assist uses the OS-specific app data location documented below.
 
 `ADO_ASSIST_OPENAI_COMPAT_API_KEY` is optional because many local model servers do not require authentication. Include `/v1` in `ADO_ASSIST_OPENAI_COMPAT_BASE_URL` for llama.cpp and other servers that expose OpenAI-compatible routes under that prefix.
 
@@ -138,6 +141,7 @@ Use PowerShell environment variables instead of `export`:
 ```powershell
 $env:ADO_ASSIST_AZURE_DEVOPS_PAT = "..."
 $env:ADO_ASSIST_AZURE_DEVOPS_ORG = "org"
+$env:ADO_ASSIST_OUTPUT_DIR = "$env:LOCALAPPDATA\ado-assist\reviews"
 $env:ADO_ASSIST_PROVIDER = "openai-compatible"
 $env:ADO_ASSIST_OPENAI_COMPAT_BASE_URL = "http://127.0.0.1:8080/v1"
 $env:ADO_ASSIST_OPENAI_COMPAT_MODEL = "local-model"
@@ -157,7 +161,8 @@ ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123" 
 ado-assist prs --project project --repo repo
 ado-assist review-open --project project --repo repo --mode quality --limit 5
 ado-assist review-local --target origin/main --mode full
-ado-assist post "reviews/org-project-repo-pr-123.md"
+ado-assist review-local --target origin/main --output ./reviews
+ado-assist post "<review-draft-file>"
 ```
 
 During local development:
@@ -169,10 +174,11 @@ npm run dev -- review "https://dev.azure.com/org/project/_git/repo/pullrequest/1
 npm run dev -- prs --project project --repo repo
 npm run dev -- review-open --project project --repo repo --mode quality --limit 5
 npm run dev -- review-local --target origin/main --mode full
-npm run dev -- post "reviews/org-project-repo-pr-123.md"
+npm run dev -- review-local --target origin/main --output ./reviews
+npm run dev -- post "<review-draft-file>"
 ```
 
-The `review` command writes a Markdown draft under `reviews/`. The shorthand form uses `ADO_ASSIST_AZURE_DEVOPS_ORG` for the organization. Edit the approved JSON block to remove comments you do not want posted, then run `post`.
+The `review` command writes a Markdown draft to the configured review draft storage directory and prints the file path. The shorthand form uses `ADO_ASSIST_AZURE_DEVOPS_ORG` for the organization. Edit the approved JSON block to remove comments you do not want posted, then run `post` with that review draft file path.
 
 The `prs` command lists active pull requests for a configured organization, project, and repository. The `review-open` command creates review drafts for active PRs in that repository and never posts comments automatically. Use `--limit` to review only the first few active PRs.
 
@@ -187,9 +193,26 @@ Use `--mode` to choose the review focus:
 
 Review drafts include a `PR Quality And Coverage Gaps` section for general PR-level issues such as vague descriptions, missing validation evidence, weak test coverage, rollout or rollback gaps, missing operational notes, and other concerns that are not best anchored to one changed line.
 
+## Review Draft Storage
+
+Generated review Markdown files are stored in an OS-specific app data directory by default:
+
+- macOS: `~/Library/Application Support/ado-assist/reviews`
+- Windows: `%LOCALAPPDATA%\ado-assist\reviews`
+- Linux: `$XDG_DATA_HOME/ado-assist/reviews`, or `~/.local/share/ado-assist/reviews` when `XDG_DATA_HOME` is not set
+
+Use `--output <dir>` for a single command, or `ADO_ASSIST_OUTPUT_DIR` for a persistent override:
+
+```bash
+ado-assist review-local --target origin/main --output ./reviews
+export ADO_ASSIST_OUTPUT_DIR="$HOME/.ado-assist/reviews"
+```
+
+ADO Assist does not automatically delete review drafts yet. Remove old Markdown files manually when they are no longer needed. If you choose a project-local directory such as `./reviews`, add it to that repository's `.gitignore` before generating drafts.
+
 ## Privacy Notes
 
-Review drafts can contain PR metadata, repository names, author names, file paths, and snippets or summaries of changed code. The `reviews/` directory is ignored by git, but you should still treat generated drafts as sensitive and avoid committing, sharing, or pasting them into public places unless you have reviewed and sanitized them.
+Review drafts can contain PR metadata, repository names, author names, file paths, and snippets or summaries of changed code. You should treat generated drafts as sensitive and avoid committing, sharing, or pasting them into public places unless you have reviewed and sanitized them.
 
 When using hosted model providers, PR metadata and diffs are sent to the configured provider. Use a local OpenAI-compatible provider if your organization requires review data to stay on your own machine or network.
 

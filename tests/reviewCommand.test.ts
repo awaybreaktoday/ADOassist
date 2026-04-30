@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { resolvePullRequestRef, resolveReviewMode } from "../src/commands/review.js";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { afterEach, describe, expect, it } from "vitest";
+import { createReviewDraft, resolvePullRequestRef, resolveReviewMode } from "../src/commands/review.js";
 import type { AppConfig } from "../src/types.js";
+import { sampleContext, sampleReview } from "./fixtures/sampleReview.js";
 
 const baseConfig: AppConfig = {
   azureDevOps: {
@@ -14,6 +18,45 @@ const baseConfig: AppConfig = {
   },
   reviewEmphasis: ["general"]
 };
+
+let tempDir: string | undefined;
+
+afterEach(async () => {
+  if (tempDir) {
+    await rm(tempDir, { recursive: true, force: true });
+    tempDir = undefined;
+  }
+});
+
+describe("createReviewDraft", () => {
+  it("writes PR review drafts to the selected output directory", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ado-assist-review-"));
+    const filename = await createReviewDraft({
+      target: {
+        prUrl: sampleContext.ref.url
+      },
+      outputDir: tempDir,
+      config: baseConfig,
+      client: {
+        async getPullRequestMetadata() {
+          return sampleContext.metadata;
+        },
+        async getChangedFiles() {
+          return sampleContext.files;
+        }
+      },
+      provider: {
+        name: "mock",
+        async reviewPullRequest() {
+          return sampleReview;
+        }
+      }
+    });
+
+    expect(filename).toContain(tempDir);
+    await expect(readFile(filename, "utf8")).resolves.toContain("# ADO Assist Review Draft");
+  });
+});
 
 describe("resolvePullRequestRef", () => {
   it("keeps supporting full PR URLs", () => {

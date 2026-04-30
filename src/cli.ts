@@ -23,10 +23,11 @@ export function createCli(): Command {
     .option("--repo <repo>")
     .option("--pr <pull-request-id>")
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
+    .option("--output <dir>", "directory for generated review drafts")
     .action(
       async (
         prUrl: string | undefined,
-        options: { project?: string; repo?: string; pr?: string; mode?: string }
+        options: { project?: string; repo?: string; pr?: string; mode?: string; output?: string }
       ) => {
         const config = loadConfigFromEnv();
         const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
@@ -34,6 +35,7 @@ export function createCli(): Command {
         const filename = await createReviewDraft({
           target: { prUrl, project: options.project, repo: options.repo, pr: options.pr },
           mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
+          outputDir: options.output,
           config,
           client,
           provider
@@ -47,13 +49,15 @@ export function createCli(): Command {
     .description("Review local branch changes against a target branch and draft a suggested PR")
     .option("--target <branch>", "target branch to compare against", "origin/main")
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
-    .action(async (options: { target: string; mode?: string }) => {
+    .option("--output <dir>", "directory for generated review drafts")
+    .action(async (options: { target: string; mode?: string; output?: string }) => {
       const config = loadConfigFromEnv();
       const provider = createReviewProvider(config);
       const git = new GitClient();
       const filename = await createLocalReviewDraft({
         targetBranch: options.target,
         mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
+        outputDir: options.output,
         config,
         git,
         provider
@@ -95,7 +99,8 @@ export function createCli(): Command {
     .requiredOption("--repo <repo>")
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--limit <count>", "maximum number of open pull requests to review")
-    .action(async (options: { project: string; repo: string; mode?: string; limit?: string }) => {
+    .option("--output <dir>", "directory for generated review drafts")
+    .action(async (options: { project: string; repo: string; mode?: string; limit?: string; output?: string }) => {
       const config = loadConfigFromEnv();
       const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
       const provider = createReviewProvider(config);
@@ -103,6 +108,7 @@ export function createCli(): Command {
         target: { project: options.project, repo: options.repo },
         mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
         limit: resolveLimit(options.limit),
+        outputDir: options.output,
         config,
         client,
         provider

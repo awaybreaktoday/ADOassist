@@ -1,10 +1,11 @@
+import { join } from "node:path";
 import type { PullRequestContext, ReviewResult } from "../types.js";
 
-export function reviewDraftFilename(context: PullRequestContext): string {
+export function reviewDraftFilename(context: PullRequestContext, outputDir = "reviews"): string {
   const organization = encodeURIComponent(context.ref.organization);
   const project = encodeURIComponent(context.ref.project);
   const repository = encodeURIComponent(context.ref.repository);
-  return `reviews/${organization}-${project}-${repository}-pr-${context.ref.pullRequestId}.md`;
+  return join(outputDir, `${organization}-${project}-${repository}-pr-${context.ref.pullRequestId}.md`);
 }
 
 export function localReviewDraftFilename(
@@ -12,7 +13,7 @@ export function localReviewDraftFilename(
   targetBranch: string,
   outputDir = "reviews"
 ): string {
-  return `${outputDir}/local-${encodeURIComponent(sourceBranch)}-to-${encodeURIComponent(targetBranch)}.md`;
+  return join(outputDir, `local-${encodeURIComponent(sourceBranch)}-to-${encodeURIComponent(targetBranch)}.md`);
 }
 
 export function formatReviewDraft(context: PullRequestContext, review: ReviewResult): string {

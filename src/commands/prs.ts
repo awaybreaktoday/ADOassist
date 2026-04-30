@@ -26,6 +26,7 @@ export interface ReviewOpenPullRequestsOptions {
   client: PullRequestDiscoveryClient;
   mode?: ReviewMode;
   limit?: number;
+  outputDir?: string;
   provider?: ReviewProvider;
   createDraft?: (target: ReviewTargetOptions, mode: ReviewMode | undefined) => Promise<string>;
 }
@@ -86,6 +87,7 @@ function defaultCreateDraft(options: ReviewOpenPullRequestsOptions) {
     return createReviewDraft({
       target,
       mode,
+      outputDir: options.outputDir,
       config: options.config,
       client: options.client as PullRequestDiscoveryClient & ReviewDraftClient,
       provider: options.provider

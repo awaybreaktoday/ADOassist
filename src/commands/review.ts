@@ -6,6 +6,7 @@ import { AppError } from "../errors.js";
 import type { ReviewProvider } from "../providers/types.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
 import { reviewEmphasisForMode } from "../review/rubric.js";
+import { resolveReviewOutputDir } from "../storage/paths.js";
 import type { AppConfig, ChangedFile, PullRequestMetadata, PullRequestRef, ReviewMode } from "../types.js";
 
 export interface ReviewTargetOptions {
@@ -18,6 +19,7 @@ export interface ReviewTargetOptions {
 export interface ReviewCommandOptions {
   target: ReviewTargetOptions;
   mode?: ReviewMode;
+  outputDir?: string;
   config: AppConfig;
   client: ReviewDraftClient;
   provider: ReviewProvider;
@@ -39,7 +41,7 @@ export async function createReviewDraft(options: ReviewCommandOptions): Promise<
     provider: options.provider
   });
   const markdown = formatReviewDraft(context, review);
-  const filename = reviewDraftFilename(context);
+  const filename = reviewDraftFilename(context, resolveReviewOutputDir(options.outputDir));
 
   await mkdir(dirname(filename), { recursive: true });
   await writeFile(filename, markdown, "utf8");
