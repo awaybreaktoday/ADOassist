@@ -8,8 +8,8 @@ type AnthropicEnv = Env & { ADO_ASSIST_PROVIDER: "anthropic" };
 type GeminiEnv = Env & { ADO_ASSIST_PROVIDER: "gemini" };
 type OpenAICompatibleEnv = Env & { ADO_ASSIST_PROVIDER: "openai-compatible" };
 
-const DEFAULT_EMPHASIS: ReviewEmphasis[] = ["general", "standards", "risk"];
-const VALID_EMPHASIS = new Set<ReviewEmphasis>(["general", "standards", "risk"]);
+const DEFAULT_EMPHASIS: ReviewEmphasis[] = ["general", "standards", "quality", "risk"];
+const VALID_EMPHASIS = new Set<ReviewEmphasis>(["general", "standards", "quality", "risk"]);
 
 function requireValue(env: Env, name: string): string {
   const value = env[name]?.trim();

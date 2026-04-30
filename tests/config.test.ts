@@ -13,7 +13,7 @@ describe("loadConfigFromEnv", () => {
     expect(config.azureDevOps.pat).toBe("pat");
     expect(config.provider.kind).toBe("openai");
     expect(config.provider.model).toBe("gpt-4.1");
-    expect(config.reviewEmphasis).toEqual(["general", "standards", "risk"]);
+    expect(config.reviewEmphasis).toEqual(["general", "standards", "quality", "risk"]);
   });
 
   it("loads Azure OpenAI configuration", () => {
@@ -156,10 +156,10 @@ describe("loadConfigFromEnv", () => {
       ADO_ASSIST_PROVIDER: "openai",
       ADO_ASSIST_OPENAI_API_KEY: "openai-key",
       ADO_ASSIST_OPENAI_MODEL: "gpt-4.1",
-      ADO_ASSIST_REVIEW_EMPHASIS: "risk,standards"
+      ADO_ASSIST_REVIEW_EMPHASIS: "risk,quality,standards"
     });
 
-    expect(config.reviewEmphasis).toEqual(["risk", "standards"]);
+    expect(config.reviewEmphasis).toEqual(["risk", "quality", "standards"]);
   });
 
   it("returns a fresh default review emphasis array", () => {
@@ -174,6 +174,6 @@ describe("loadConfigFromEnv", () => {
     first.reviewEmphasis.push("risk");
 
     const second = loadConfigFromEnv(env);
-    expect(second.reviewEmphasis).toEqual(["general", "standards", "risk"]);
+    expect(second.reviewEmphasis).toEqual(["general", "standards", "quality", "risk"]);
   });
 });

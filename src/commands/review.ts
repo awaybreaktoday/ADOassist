@@ -6,7 +6,8 @@ import { formatReviewDraft, reviewDraftFilename } from "../drafts/format.js";
 import { AppError } from "../errors.js";
 import type { ReviewProvider } from "../providers/types.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
-import type { AppConfig, PullRequestRef } from "../types.js";
+import { reviewEmphasisForMode } from "../review/rubric.js";
+import type { AppConfig, PullRequestRef, ReviewMode } from "../types.js";
 
 export interface ReviewTargetOptions {
   prUrl?: string;
@@ -17,6 +18,7 @@ export interface ReviewTargetOptions {
 
 export interface ReviewCommandOptions {
   target: ReviewTargetOptions;
+  mode?: ReviewMode;
   config: AppConfig;
   client: AzureDevOpsClient;
   provider: ReviewProvider;
@@ -29,7 +31,7 @@ export async function createReviewDraft(options: ReviewCommandOptions): Promise<
   const context = { ref, metadata, files };
   const review = await reviewPullRequest({
     context,
-    emphasis: options.config.reviewEmphasis,
+    emphasis: options.mode ? reviewEmphasisForMode(options.mode) : options.config.reviewEmphasis,
     provider: options.provider
   });
   const markdown = formatReviewDraft(context, review);
@@ -38,6 +40,18 @@ export async function createReviewDraft(options: ReviewCommandOptions): Promise<
   await mkdir(dirname(filename), { recursive: true });
   await writeFile(filename, markdown, "utf8");
   return filename;
+}
+
+export function resolveReviewMode(mode: string | undefined): ReviewMode {
+  if (mode === undefined) {
+    return "full";
+  }
+
+  if (mode === "full" || mode === "code" || mode === "quality" || mode === "risk") {
+    return mode;
+  }
+
+  throw new AppError("--mode must be one of: full, code, quality, risk");
 }
 
 export function resolvePullRequestRef(target: ReviewTargetOptions, config: AppConfig): PullRequestRef {

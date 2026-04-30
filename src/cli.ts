@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { AzureDevOpsClient } from "./azureDevOps/client.js";
 import { loadAzureDevOpsConfigFromEnv, loadConfigFromEnv } from "./config.js";
 import { postReviewDraftFile } from "./commands/post.js";
-import { createReviewDraft } from "./commands/review.js";
+import { createReviewDraft, resolveReviewMode } from "./commands/review.js";
 import { createReviewProvider } from "./providers/factory.js";
 
 export function createCli(): Command {
@@ -19,18 +19,25 @@ export function createCli(): Command {
     .option("--project <project>")
     .option("--repo <repo>")
     .option("--pr <pull-request-id>")
-    .action(async (prUrl: string | undefined, options: { project?: string; repo?: string; pr?: string }) => {
-      const config = loadConfigFromEnv();
-      const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
-      const provider = createReviewProvider(config);
-      const filename = await createReviewDraft({
-        target: { prUrl, project: options.project, repo: options.repo, pr: options.pr },
-        config,
-        client,
-        provider
-      });
-      console.log(`Review draft written to ${filename}`);
-    });
+    .option("--mode <mode>", "review mode: full, code, quality, or risk")
+    .action(
+      async (
+        prUrl: string | undefined,
+        options: { project?: string; repo?: string; pr?: string; mode?: string }
+      ) => {
+        const config = loadConfigFromEnv();
+        const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
+        const provider = createReviewProvider(config);
+        const filename = await createReviewDraft({
+          target: { prUrl, project: options.project, repo: options.repo, pr: options.pr },
+          mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
+          config,
+          client,
+          provider
+        });
+        console.log(`Review draft written to ${filename}`);
+      }
+    );
 
   program
     .command("post")

@@ -79,7 +79,7 @@ Optional:
 
 ```bash
 export ADO_ASSIST_AZURE_DEVOPS_ORG="org"
-export ADO_ASSIST_REVIEW_EMPHASIS="general,standards,risk"
+export ADO_ASSIST_REVIEW_EMPHASIS="general,standards,quality,risk"
 export ADO_ASSIST_ANTHROPIC_MAX_TOKENS="4096"
 export ADO_ASSIST_OPENAI_COMPAT_API_KEY="..."
 ```
@@ -95,6 +95,7 @@ After `npm link` or `npm install -g .`:
 ```bash
 ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123"
 ado-assist review --project project --repo repo --pr 123
+ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123" --mode quality
 ado-assist post "reviews/org-project-repo-pr-123.md"
 ```
 
@@ -103,10 +104,18 @@ During local development:
 ```bash
 npm run dev -- review "https://dev.azure.com/org/project/_git/repo/pullrequest/123"
 npm run dev -- review --project project --repo repo --pr 123
+npm run dev -- review "https://dev.azure.com/org/project/_git/repo/pullrequest/123" --mode risk
 npm run dev -- post "reviews/org-project-repo-pr-123.md"
 ```
 
 The `review` command writes a Markdown draft under `reviews/`. The shorthand form uses `ADO_ASSIST_AZURE_DEVOPS_ORG` for the organization. Edit the approved JSON block to remove comments you do not want posted, then run `post`.
+
+Use `--mode` to choose the review focus:
+
+- `full`: code, standards, PR quality gaps, and risk review. This is the default.
+- `code`: changed-line implementation issues, maintainability, readability, and standards.
+- `quality`: PR description quality, missing validation evidence, tests, rollout, rollback, docs, monitoring, and operational gaps.
+- `risk`: security, infrastructure risk, data loss, rollout safety, rollback safety, and production safety.
 
 Review drafts include a `PR Quality And Coverage Gaps` section for general PR-level issues such as vague descriptions, missing validation evidence, weak test coverage, rollout or rollback gaps, missing operational notes, and other concerns that are not best anchored to one changed line.
 

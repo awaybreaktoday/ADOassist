@@ -1,4 +1,20 @@
-import type { ReviewEmphasis } from "../types.js";
+import type { ReviewEmphasis, ReviewMode } from "../types.js";
+
+export function reviewEmphasisForMode(mode: ReviewMode): ReviewEmphasis[] {
+  if (mode === "code") {
+    return ["general", "standards"];
+  }
+
+  if (mode === "quality") {
+    return ["quality"];
+  }
+
+  if (mode === "risk") {
+    return ["risk"];
+  }
+
+  return ["general", "standards", "quality", "risk"];
+}
 
 export function buildReviewRubric(emphasis: ReviewEmphasis[]): string {
   const sections = [
@@ -11,24 +27,29 @@ export function buildReviewRubric(emphasis: ReviewEmphasis[]): string {
     "",
     "Return only findings that are actionable and grounded in the supplied diff.",
     "Do not invent files or line numbers.",
-    "Prefer fewer high-confidence comments over broad commentary.",
-    "",
-    "Also review PR quality and coverage gaps. Use general PR comments for these findings unless a specific changed line is the best anchor.",
-    "Flag vague or missing PR description details, especially when the change affects infrastructure, security, data, or production behavior.",
-    "Look for missing validation, tests, rollout, rollback, monitoring, documentation, and operational-impact notes."
+    "Prefer fewer high-confidence comments over broad commentary."
   ];
 
   if (emphasis.includes("general")) {
-    sections.push("General code review: look for bugs, regressions, readability, maintainability, and missing tests.");
+    sections.push(
+      "Mode: code. Focus on changed lines, implementation correctness, regressions, readability, maintainability, and missing tests."
+    );
   }
   if (emphasis.includes("standards")) {
     sections.push(
       "Team standards: flag naming, architecture, and PR hygiene issues only when they materially affect maintainability."
     );
   }
+  if (emphasis.includes("quality")) {
+    sections.push(
+      "Mode: quality. Review PR quality and coverage gaps. Use general PR comments for these findings unless a specific changed line is the best anchor.",
+      "Flag vague or missing PR description details, especially when the change affects infrastructure, security, data, or production behavior.",
+      "Look for missing validation, tests, rollout, rollback, monitoring, documentation, and operational-impact notes."
+    );
+  }
   if (emphasis.includes("risk")) {
     sections.push(
-      "Risk review: pay close attention to security, secrets, infrastructure risk, data loss, and production safety."
+      "Mode: risk. Pay close attention to security, secrets, infrastructure risk, data loss, rollout safety, rollback safety, and production safety."
     );
   }
 

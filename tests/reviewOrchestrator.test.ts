@@ -6,7 +6,7 @@ describe("reviewPullRequest", () => {
   it("passes PR context and rubric to the configured provider", async () => {
     const result = await reviewPullRequest({
       context: sampleContext,
-      emphasis: ["general", "standards", "risk"],
+      emphasis: ["general", "standards", "quality", "risk"],
       provider: {
         name: "mock",
         async reviewPullRequest(input) {

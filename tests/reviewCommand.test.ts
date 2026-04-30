@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolvePullRequestRef } from "../src/commands/review.js";
+import { resolvePullRequestRef, resolveReviewMode } from "../src/commands/review.js";
 import type { AppConfig } from "../src/types.js";
 
 const baseConfig: AppConfig = {
@@ -100,5 +100,24 @@ describe("resolvePullRequestRef", () => {
         baseConfig
       )
     ).toThrow("Pull request id must be numeric");
+  });
+});
+
+describe("resolveReviewMode", () => {
+  it("defaults to full mode", () => {
+    expect(resolveReviewMode(undefined)).toBe("full");
+  });
+
+  it("accepts supported modes", () => {
+    expect(resolveReviewMode("code")).toBe("code");
+    expect(resolveReviewMode("quality")).toBe("quality");
+    expect(resolveReviewMode("risk")).toBe("risk");
+    expect(resolveReviewMode("full")).toBe("full");
+  });
+
+  it("rejects unsupported modes", () => {
+    expect(() => resolveReviewMode("quick")).toThrow(
+      "--mode must be one of: full, code, quality, risk"
+    );
   });
 });

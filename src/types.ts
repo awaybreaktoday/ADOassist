@@ -1,4 +1,5 @@
-export type ReviewEmphasis = "general" | "standards" | "risk";
+export type ReviewMode = "full" | "code" | "quality" | "risk";
+export type ReviewEmphasis = "general" | "standards" | "quality" | "risk";
 
 export type ProviderConfig =
   | {
