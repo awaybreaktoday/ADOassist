@@ -12,7 +12,7 @@ Deleted files and binary files are skipped in the first implementation. Large PR
 
 ### Prerequisites
 
-- Node.js 20 or newer
+- Node.js 24 LTS
 - npm
 - git
 - An Azure DevOps PAT with Code read access for drafting reviews, and Code write access if you want to post comments
