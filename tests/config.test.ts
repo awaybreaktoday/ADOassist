@@ -70,4 +70,19 @@ describe("loadConfigFromEnv", () => {
 
     expect(config.reviewEmphasis).toEqual(["risk", "standards"]);
   });
+
+  it("returns a fresh default review emphasis array", () => {
+    const env = {
+      ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
+      ADO_ASSIST_PROVIDER: "openai",
+      ADO_ASSIST_OPENAI_API_KEY: "openai-key",
+      ADO_ASSIST_OPENAI_MODEL: "gpt-4.1"
+    } as const;
+
+    const first = loadConfigFromEnv(env);
+    first.reviewEmphasis.push("risk");
+
+    const second = loadConfigFromEnv(env);
+    expect(second.reviewEmphasis).toEqual(["general", "standards", "risk"]);
+  });
 });

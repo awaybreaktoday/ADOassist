@@ -18,7 +18,7 @@ function requireValue(env: Env, name: string): string {
 
 function parseReviewEmphasis(value: string | undefined): ReviewEmphasis[] {
   if (!value?.trim()) {
-    return DEFAULT_EMPHASIS;
+    return [...DEFAULT_EMPHASIS];
   }
 
   const parsed = value
