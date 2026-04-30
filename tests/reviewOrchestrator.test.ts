@@ -47,4 +47,77 @@ describe("reviewPullRequest", () => {
       })
     ).rejects.toThrow("Provider returned a comment for a file outside the PR");
   });
+
+  it("does not let providers mutate PR context to bypass file validation", async () => {
+    await expect(
+      reviewPullRequest({
+        context: sampleContext,
+        emphasis: ["general"],
+        provider: {
+          name: "mock",
+          async reviewPullRequest(input) {
+            input.pullRequest.files.push({ path: "/src/other.ts", diff: "@@ fake @@" });
+            return {
+              ...sampleReview,
+              comments: [
+                {
+                  id: "bad",
+                  filePath: "/src/other.ts",
+                  line: 1,
+                  severity: "warning",
+                  category: "correctness",
+                  message: "This file is not in the original PR."
+                }
+              ]
+            };
+          }
+        }
+      })
+    ).rejects.toThrow("Provider returned a comment for a file outside the PR");
+  });
+
+  it("rejects malformed provider output", async () => {
+    await expect(
+      reviewPullRequest({
+        context: sampleContext,
+        emphasis: ["general"],
+        provider: {
+          name: "mock",
+          async reviewPullRequest() {
+            return {
+              summary: " ",
+              riskSummary: "",
+              comments: "not comments"
+            } as never;
+          }
+        }
+      })
+    ).rejects.toThrow("Provider returned an invalid review result");
+  });
+
+  it("rejects inline comments without a positive line", async () => {
+    await expect(
+      reviewPullRequest({
+        context: sampleContext,
+        emphasis: ["general"],
+        provider: {
+          name: "mock",
+          async reviewPullRequest() {
+            return {
+              ...sampleReview,
+              comments: [
+                {
+                  id: "bad",
+                  filePath: "/src/payments/retry.ts",
+                  severity: "warning",
+                  category: "correctness",
+                  message: "Missing a line."
+                }
+              ]
+            };
+          }
+        }
+      })
+    ).rejects.toThrow("Provider returned an invalid review result");
+  });
 });
