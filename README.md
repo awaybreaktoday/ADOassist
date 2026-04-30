@@ -48,14 +48,45 @@ export ADO_ASSIST_AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
 export ADO_ASSIST_AZURE_OPENAI_DEPLOYMENT="your-deployment"
 ```
 
+For Anthropic Claude:
+
+```bash
+export ADO_ASSIST_AZURE_DEVOPS_PAT="..."
+export ADO_ASSIST_PROVIDER="anthropic"
+export ADO_ASSIST_ANTHROPIC_API_KEY="..."
+export ADO_ASSIST_ANTHROPIC_MODEL="claude-3-5-sonnet-latest"
+```
+
+For Google Gemini:
+
+```bash
+export ADO_ASSIST_AZURE_DEVOPS_PAT="..."
+export ADO_ASSIST_PROVIDER="gemini"
+export ADO_ASSIST_GEMINI_API_KEY="..."
+export ADO_ASSIST_GEMINI_MODEL="gemini-1.5-pro"
+```
+
+For OpenAI-compatible servers, including local llama.cpp `llama-server`:
+
+```bash
+export ADO_ASSIST_AZURE_DEVOPS_PAT="..."
+export ADO_ASSIST_PROVIDER="openai-compatible"
+export ADO_ASSIST_OPENAI_COMPAT_BASE_URL="http://127.0.0.1:8080/v1"
+export ADO_ASSIST_OPENAI_COMPAT_MODEL="local-model"
+```
+
 Optional:
 
 ```bash
 export ADO_ASSIST_AZURE_DEVOPS_ORG="org"
 export ADO_ASSIST_REVIEW_EMPHASIS="general,standards,risk"
+export ADO_ASSIST_ANTHROPIC_MAX_TOKENS="4096"
+export ADO_ASSIST_OPENAI_COMPAT_API_KEY="..."
 ```
 
 `ADO_ASSIST_AZURE_DEVOPS_ORG` is optional when using a full PR URL because the organization is parsed from the URL. It is required when using the shorthand review flags.
+
+`ADO_ASSIST_OPENAI_COMPAT_API_KEY` is optional because many local model servers do not require authentication. Include `/v1` in `ADO_ASSIST_OPENAI_COMPAT_BASE_URL` for llama.cpp and other servers that expose OpenAI-compatible routes under that prefix.
 
 ## Usage
 

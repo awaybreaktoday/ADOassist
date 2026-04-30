@@ -11,6 +11,23 @@ export type ProviderConfig =
       apiKey: string;
       endpoint: string;
       deployment: string;
+    }
+  | {
+      kind: "anthropic";
+      apiKey: string;
+      model: string;
+      maxTokens: number;
+    }
+  | {
+      kind: "gemini";
+      apiKey: string;
+      model: string;
+    }
+  | {
+      kind: "openai-compatible";
+      baseUrl: string;
+      model: string;
+      apiKey?: string;
     };
 
 export interface AppConfig {

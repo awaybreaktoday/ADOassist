@@ -30,6 +30,46 @@ describe("loadConfigFromEnv", () => {
     expect(config.provider.deployment).toBe("gpt-4.1");
   });
 
+  it("loads Anthropic configuration", () => {
+    const config = loadConfigFromEnv({
+      ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
+      ADO_ASSIST_PROVIDER: "anthropic",
+      ADO_ASSIST_ANTHROPIC_API_KEY: "anthropic-key",
+      ADO_ASSIST_ANTHROPIC_MODEL: "claude-3-5-sonnet-latest"
+    });
+
+    expect(config.provider.kind).toBe("anthropic");
+    expect(config.provider.model).toBe("claude-3-5-sonnet-latest");
+    expect(config.provider.maxTokens).toBe(4096);
+  });
+
+  it("loads Gemini configuration", () => {
+    const config = loadConfigFromEnv({
+      ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
+      ADO_ASSIST_PROVIDER: "gemini",
+      ADO_ASSIST_GEMINI_API_KEY: "gemini-key",
+      ADO_ASSIST_GEMINI_MODEL: "gemini-1.5-pro"
+    });
+
+    expect(config.provider.kind).toBe("gemini");
+    expect(config.provider.model).toBe("gemini-1.5-pro");
+  });
+
+  it("loads OpenAI-compatible configuration", () => {
+    const config = loadConfigFromEnv({
+      ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
+      ADO_ASSIST_PROVIDER: "openai-compatible",
+      ADO_ASSIST_OPENAI_COMPAT_BASE_URL: "http://127.0.0.1:8080/v1",
+      ADO_ASSIST_OPENAI_COMPAT_MODEL: "local-model",
+      ADO_ASSIST_OPENAI_COMPAT_API_KEY: "optional-key"
+    });
+
+    expect(config.provider.kind).toBe("openai-compatible");
+    expect(config.provider.baseUrl).toBe("http://127.0.0.1:8080/v1");
+    expect(config.provider.model).toBe("local-model");
+    expect(config.provider.apiKey).toBe("optional-key");
+  });
+
   it("rejects missing Azure DevOps PAT", () => {
     expect(() =>
       loadConfigFromEnv({
@@ -57,6 +97,57 @@ describe("loadConfigFromEnv", () => {
         ADO_ASSIST_OPENAI_API_KEY: "openai-key"
       })
     ).toThrow("ADO_ASSIST_OPENAI_MODEL is required");
+  });
+
+  it("rejects incomplete Anthropic configuration", () => {
+    expect(() =>
+      loadConfigFromEnv({
+        ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
+        ADO_ASSIST_PROVIDER: "anthropic",
+        ADO_ASSIST_ANTHROPIC_API_KEY: "anthropic-key"
+      })
+    ).toThrow("ADO_ASSIST_ANTHROPIC_MODEL is required");
+  });
+
+  it("rejects invalid Anthropic max tokens", () => {
+    expect(() =>
+      loadConfigFromEnv({
+        ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
+        ADO_ASSIST_PROVIDER: "anthropic",
+        ADO_ASSIST_ANTHROPIC_API_KEY: "anthropic-key",
+        ADO_ASSIST_ANTHROPIC_MODEL: "claude-3-5-sonnet-latest",
+        ADO_ASSIST_ANTHROPIC_MAX_TOKENS: "zero"
+      })
+    ).toThrow("ADO_ASSIST_ANTHROPIC_MAX_TOKENS must be a positive integer");
+  });
+
+  it("rejects incomplete Gemini configuration", () => {
+    expect(() =>
+      loadConfigFromEnv({
+        ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
+        ADO_ASSIST_PROVIDER: "gemini",
+        ADO_ASSIST_GEMINI_API_KEY: "gemini-key"
+      })
+    ).toThrow("ADO_ASSIST_GEMINI_MODEL is required");
+  });
+
+  it("rejects incomplete OpenAI-compatible configuration", () => {
+    expect(() =>
+      loadConfigFromEnv({
+        ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
+        ADO_ASSIST_PROVIDER: "openai-compatible",
+        ADO_ASSIST_OPENAI_COMPAT_BASE_URL: "http://127.0.0.1:8080/v1"
+      })
+    ).toThrow("ADO_ASSIST_OPENAI_COMPAT_MODEL is required");
+  });
+
+  it("rejects unknown providers with the supported provider list", () => {
+    expect(() =>
+      loadConfigFromEnv({
+        ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
+        ADO_ASSIST_PROVIDER: "unknown"
+      })
+    ).toThrow("ADO_ASSIST_PROVIDER must be openai, azure-openai, anthropic, gemini, or openai-compatible");
   });
 
   it("parses custom review emphasis", () => {
