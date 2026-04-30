@@ -19,6 +19,15 @@ interface PullRequestIterationChange {
   };
 }
 
+interface ItemContent {
+  content?: string;
+  contentMetadata?: {
+    isBinary?: boolean;
+    isImage?: boolean;
+    contentType?: string;
+  };
+}
+
 export interface AzureDevOpsClientOptions {
   pat: string;
   fetchImpl?: FetchLike;
@@ -69,13 +78,23 @@ export class AzureDevOpsClient {
       }
 
       const changeType = change.changeType.toLowerCase();
+      if (changeType.includes("delete")) {
+        continue;
+      }
+
       const basePath = change.originalPath ?? path;
       const oldContent = changeType.includes("add")
         ? ""
         : await this.getItemContentAtCommit(ref, basePath, baseCommit);
-      const newContent = changeType.includes("delete")
-        ? ""
-        : await this.getItemContentAtCommit(ref, path, headCommit);
+      if (oldContent === undefined) {
+        continue;
+      }
+
+      const newContent = await this.getItemContentAtCommit(ref, path, headCommit);
+
+      if (newContent === undefined) {
+        continue;
+      }
 
       files.push({
         path,
@@ -132,25 +151,49 @@ export class AzureDevOpsClient {
     ref: PullRequestRef,
     iterationId: number
   ): Promise<PullRequestIterationChange[]> {
-    const payload = await this.getJson<{ changeEntries?: PullRequestIterationChange[] }>(
-      `${this.baseUrl(ref)}/pullRequests/${ref.pullRequestId}/iterations/${iterationId}/changes?api-version=7.1`
-    );
-    return payload.changeEntries ?? [];
+    const changes: PullRequestIterationChange[] = [];
+    let nextSkip = 0;
+    let nextTop = 2000;
+
+    do {
+      const url = new URL(
+        `${this.baseUrl(ref)}/pullRequests/${ref.pullRequestId}/iterations/${iterationId}/changes`
+      );
+      url.searchParams.set("$top", String(nextTop));
+      url.searchParams.set("$skip", String(nextSkip));
+      url.searchParams.set("api-version", "7.1");
+
+      const payload = await this.getJson<{
+        changeEntries?: PullRequestIterationChange[];
+        nextSkip?: number;
+        nextTop?: number;
+      }>(url.toString());
+      changes.push(...(payload.changeEntries ?? []));
+      nextSkip = payload.nextSkip ?? 0;
+      nextTop = payload.nextTop ?? 0;
+    } while (nextSkip > 0 && nextTop > 0);
+
+    return changes;
   }
 
   private async getItemContentAtCommit(
     ref: PullRequestRef,
     path: string,
     commitId: string
-  ): Promise<string> {
+  ): Promise<string | undefined> {
     const url = new URL(`${this.baseUrl(ref)}/items`);
     url.searchParams.set("path", path);
     url.searchParams.set("includeContent", "true");
+    url.searchParams.set("includeContentMetadata", "true");
     url.searchParams.set("versionDescriptor.version", commitId);
     url.searchParams.set("versionDescriptor.versionType", "commit");
     url.searchParams.set("api-version", "7.1");
 
-    const payload = await this.getJson<{ content?: string }>(url.toString());
+    const payload = await this.getJson<ItemContent>(url.toString());
+    if (payload.contentMetadata?.isBinary || payload.contentMetadata?.isImage) {
+      return undefined;
+    }
+
     return payload.content ?? "";
   }
 

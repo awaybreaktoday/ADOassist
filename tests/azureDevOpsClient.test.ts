@@ -86,4 +86,122 @@ describe("AzureDevOpsClient", () => {
     expect(files[0].diff).toContain("-  return false;");
     expect(files[0].diff).toContain("+  return true;");
   });
+
+  it("fetches all pages of PR iteration changes", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          value: [
+            {
+              id: 3,
+              commonRefCommit: { commitId: "base-commit" },
+              sourceRefCommit: { commitId: "head-commit" }
+            }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          nextSkip: 1,
+          nextTop: 1,
+          changeEntries: [
+            {
+              changeType: "edit",
+              item: { path: "/src/one.ts", gitObjectType: "blob" }
+            }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          nextSkip: 0,
+          nextTop: 0,
+          changeEntries: [
+            {
+              changeType: "edit",
+              item: { path: "/src/two.ts", gitObjectType: "blob" }
+            }
+          ]
+        })
+      })
+      .mockResolvedValue({ ok: true, json: async () => ({ content: "text\n" }) });
+
+    const client = new AzureDevOpsClient({ pat: "pat", fetchImpl: fetchMock });
+    const files = await client.getChangedFiles(sampleContext.ref);
+
+    expect(files.map((file) => file.path)).toEqual(["/src/one.ts", "/src/two.ts"]);
+    const secondPageUrl = new URL(fetchMock.mock.calls[2][0]);
+    expect(secondPageUrl.searchParams.get("$skip")).toBe("1");
+    expect(secondPageUrl.searchParams.get("$top")).toBe("1");
+  });
+
+  it("skips deleted files until comment side metadata is supported", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          value: [
+            {
+              id: 3,
+              commonRefCommit: { commitId: "base-commit" },
+              sourceRefCommit: { commitId: "head-commit" }
+            }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          changeEntries: [
+            {
+              changeType: "delete",
+              item: { path: "/src/removed.ts", gitObjectType: "blob" }
+            }
+          ]
+        })
+      });
+
+    const client = new AzureDevOpsClient({ pat: "pat", fetchImpl: fetchMock });
+    await expect(client.getChangedFiles(sampleContext.ref)).resolves.toEqual([]);
+  });
+
+  it("skips binary files", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          value: [
+            {
+              id: 3,
+              commonRefCommit: { commitId: "base-commit" },
+              sourceRefCommit: { commitId: "head-commit" }
+            }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          changeEntries: [
+            {
+              changeType: "edit",
+              item: { path: "/assets/logo.png", gitObjectType: "blob" }
+            }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ content: "base64", contentMetadata: { isBinary: true } })
+      });
+
+    const client = new AzureDevOpsClient({ pat: "pat", fetchImpl: fetchMock });
+    await expect(client.getChangedFiles(sampleContext.ref)).resolves.toEqual([]);
+  });
 });
