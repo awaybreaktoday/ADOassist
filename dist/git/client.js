@@ -22,6 +22,34 @@ export class GitClient {
         }
         return files;
     }
+    async changedFilesIncludingWorkingTree(targetBranch) {
+        const base = (await this.execGit(["merge-base", targetBranch, "HEAD"])).trim();
+        const names = (await this.execGit(["diff", "--name-only", base]))
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean);
+        const files = [];
+        for (const name of names) {
+            const diff = await this.execGit(["diff", "--no-ext-diff", "--unified=200", base, "--", name]);
+            files.push({ path: `/${name}`, diff });
+        }
+        return files;
+    }
+    async hasWorkingTreeChanges() {
+        return (await this.execGit(["status", "--porcelain"])).trim().length > 0;
+    }
+    async remoteUrl(remote = "origin") {
+        return (await this.execGit(["remote", "get-url", remote])).trim();
+    }
+    async stageAll() {
+        await this.execGit(["add", "--all"]);
+    }
+    async commit(message) {
+        await this.execGit(["commit", "-m", message]);
+    }
+    async pushCurrentBranch(branch) {
+        await this.execGit(["push", "--set-upstream", "origin", branch]);
+    }
     async execGit(args) {
         if (this.options.execGit) {
             return this.options.execGit(args);

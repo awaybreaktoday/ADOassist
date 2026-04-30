@@ -113,17 +113,36 @@ function formatHumanComments(comments) {
     })
         .join("\n\n");
 }
-function suggestPrTitle(context, review) {
+export function suggestPrTitle(context, review) {
+    const suggestedTitle = cleanSingleLine(review.suggestedTitle);
+    if (suggestedTitle) {
+        return suggestedTitle;
+    }
     const firstSentence = review.summary.split(/(?<=[.!?])\s+/)[0]?.trim();
     if (firstSentence) {
-        return firstSentence.length <= 90 ? firstSentence : `${firstSentence.slice(0, 87).trim()}...`;
+        return firstSentence.length <= 90 ? firstSentence : firstSentence.slice(0, 90).replace(/\s+\S*$/, "").trim();
     }
     return `Update ${context.metadata.sourceBranch}`;
 }
-function suggestPrDescription(review) {
+export function suggestPrDescription(review) {
+    const suggestedDescription = review.suggestedDescription?.trim();
+    if (suggestedDescription) {
+        return suggestedDescription;
+    }
     return `Summary:
 ${review.summary}
 
 Risk:
 ${review.riskSummary}`;
+}
+export function suggestCommitMessage(context, review) {
+    const suggestedCommitMessage = cleanSingleLine(review.suggestedCommitMessage);
+    if (suggestedCommitMessage) {
+        return suggestedCommitMessage;
+    }
+    return suggestPrTitle(context, review);
+}
+function cleanSingleLine(value) {
+    const cleaned = value?.replace(/\s+/g, " ").trim();
+    return cleaned && !cleaned.endsWith("...") ? cleaned : undefined;
 }

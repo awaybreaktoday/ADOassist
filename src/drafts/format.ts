@@ -130,19 +130,43 @@ function formatHumanComments(comments: ReviewResult["comments"]): string {
     .join("\n\n");
 }
 
-function suggestPrTitle(context: PullRequestContext, review: ReviewResult): string {
+export function suggestPrTitle(context: PullRequestContext, review: ReviewResult): string {
+  const suggestedTitle = cleanSingleLine(review.suggestedTitle);
+  if (suggestedTitle) {
+    return suggestedTitle;
+  }
+
   const firstSentence = review.summary.split(/(?<=[.!?])\s+/)[0]?.trim();
   if (firstSentence) {
-    return firstSentence.length <= 90 ? firstSentence : `${firstSentence.slice(0, 87).trim()}...`;
+    return firstSentence.length <= 90 ? firstSentence : firstSentence.slice(0, 90).replace(/\s+\S*$/, "").trim();
   }
 
   return `Update ${context.metadata.sourceBranch}`;
 }
 
-function suggestPrDescription(review: ReviewResult): string {
+export function suggestPrDescription(review: ReviewResult): string {
+  const suggestedDescription = review.suggestedDescription?.trim();
+  if (suggestedDescription) {
+    return suggestedDescription;
+  }
+
   return `Summary:
 ${review.summary}
 
 Risk:
 ${review.riskSummary}`;
+}
+
+export function suggestCommitMessage(context: PullRequestContext, review: ReviewResult): string {
+  const suggestedCommitMessage = cleanSingleLine(review.suggestedCommitMessage);
+  if (suggestedCommitMessage) {
+    return suggestedCommitMessage;
+  }
+
+  return suggestPrTitle(context, review);
+}
+
+function cleanSingleLine(value: string | undefined): string | undefined {
+  const cleaned = value?.replace(/\s+/g, " ").trim();
+  return cleaned && !cleaned.endsWith("...") ? cleaned : undefined;
 }

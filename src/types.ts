@@ -96,5 +96,8 @@ export interface ReviewComment {
 export interface ReviewResult {
   summary: string;
   riskSummary: string;
+  suggestedTitle?: string;
+  suggestedDescription?: string;
+  suggestedCommitMessage?: string;
   comments: ReviewComment[];
 }

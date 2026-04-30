@@ -5,6 +5,9 @@ export function providerSystemPrompt() {
         "{",
         '  "summary": "string",',
         '  "riskSummary": "string",',
+        '  "suggestedTitle": "optional string",',
+        '  "suggestedDescription": "optional string",',
+        '  "suggestedCommitMessage": "optional string",',
         '  "comments": [',
         "    {",
         '      "id": "string",',
@@ -20,6 +23,9 @@ export function providerSystemPrompt() {
         "Return only the JSON object, with no markdown fence or surrounding prose.",
         "Each comment must include id, severity, category, and message.",
         "Omit optional fields entirely when they do not apply; do not use empty strings, zero, or null for optional fields.",
+        "When reviewing local branch changes, include suggestedTitle, suggestedDescription, and suggestedCommitMessage.",
+        "Keep suggestedTitle concise and complete; do not end it with an ellipsis or an unfinished phrase.",
+        "Keep suggestedCommitMessage as one conventional commit-style subject line unless a body is essential.",
         "Use filePath and line together for inline comments; omit both for general PR comments. suggestion is optional.",
         "Only comment on files and lines present in the supplied PR context."
     ].join("\n");

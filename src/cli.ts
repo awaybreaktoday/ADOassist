@@ -11,6 +11,7 @@ import {
 } from "./config.js";
 import { createLocalReviewDraft } from "./commands/local.js";
 import { postReviewDraftFile } from "./commands/post.js";
+import { preparePullRequest } from "./commands/prepare.js";
 import { listOpenPullRequests, resolveLimit, reviewOpenPullRequests } from "./commands/prs.js";
 import { createReviewDraft, resolveReviewMode } from "./commands/review.js";
 import { GitClient } from "./git/client.js";
@@ -149,6 +150,44 @@ export function createCli(): Command {
       const client = new AzureDevOpsClient({ pat: azureDevOps.pat });
       const count = await postReviewDraftFile(reviewFile, client);
       console.log(`Posted ${count} approved comment${count === 1 ? "" : "s"}`);
+    });
+
+  const pr = program.command("pr").description("Prepare and create Azure DevOps pull requests");
+
+  pr.command("prepare")
+    .description("Review local changes, draft PR text, and optionally commit, push, and create the PR")
+    .option("--target <branch>", "target branch to compare against", "origin/main")
+    .option("--mode <mode>", "review mode: full, code, quality, or risk")
+    .option("--output <dir>", "directory for generated review drafts")
+    .option("--apply", "stage, commit, push, and create the Azure DevOps PR")
+    .action(async (options: { target: string; mode?: string; output?: string; apply?: boolean }) => {
+      const config = await loadConfigFromFileAndEnv(selectedConfigPath());
+      const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
+      const provider = createReviewProvider(config);
+      const git = new GitClient();
+      const result = await preparePullRequest({
+        targetBranch: options.target,
+        mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
+        outputDir: options.output,
+        apply: options.apply === true,
+        config,
+        git,
+        client,
+        provider
+      });
+
+      console.log(`Review draft written to ${result.draftFile}`);
+      console.log(`Repository: ${result.repository.organization}/${result.repository.project}/${result.repository.repository}`);
+      console.log(`Commit message: ${result.commitMessage}`);
+      console.log(`PR title: ${result.title}`);
+
+      if (result.applied) {
+        console.log(result.commitCreated ? "Committed local changes." : "No local working tree changes to commit.");
+        console.log(`Pushed ${result.sourceBranch}.`);
+        console.log(`Pull request created: ${result.pullRequestUrl}`);
+      } else {
+        console.log("Dry run only. Re-run with --apply to stage, commit, push, and create the pull request.");
+      }
     });
 
   const config = program.command("config").description("Manage ADO Assist user configuration");

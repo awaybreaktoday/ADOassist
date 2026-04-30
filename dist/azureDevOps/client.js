@@ -26,6 +26,16 @@ export class AzureDevOpsClient {
             targetBranch: pullRequest.targetRefName
         }));
     }
+    async createPullRequest(repository, request) {
+        const payload = await this.postJson(`${this.repositoryBaseUrl(repository)}/pullrequests?api-version=7.1`, request);
+        return {
+            organization: repository.organization,
+            project: repository.project,
+            repository: repository.repository,
+            pullRequestId: payload.pullRequestId,
+            url: this.pullRequestUrl(repository, payload.pullRequestId)
+        };
+    }
     async getPullRequestMetadata(ref) {
         const payload = await this.getJson(`${this.baseUrl(ref)}/pullRequests/${ref.pullRequestId}?api-version=7.1`);
         return {
@@ -164,6 +174,7 @@ export class AzureDevOpsClient {
         if (!response.ok) {
             throw new AppError(`Azure DevOps request failed with ${response.status}`);
         }
+        return (await response.json());
     }
 }
 function formatComment(comment) {

@@ -88,6 +88,12 @@ function reviewResultValidationError(value: unknown): string | undefined {
     return "riskSummary must be a non-empty string";
   }
 
+  for (const field of ["suggestedTitle", "suggestedDescription", "suggestedCommitMessage"]) {
+    if (value[field] !== undefined && !isNonEmptyString(value[field])) {
+      return `${field} must be a non-empty string when present`;
+    }
+  }
+
   if (!Array.isArray(value.comments)) {
     return "comments must be an array";
   }

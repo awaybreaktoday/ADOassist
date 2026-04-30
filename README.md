@@ -232,6 +232,8 @@ ado-assist prs --project project --repo repo
 ado-assist review-open --project project --repo repo --mode quality --limit 5
 ado-assist review-local --target origin/main --mode full
 ado-assist review-local --target origin/main --output ./reviews
+ado-assist pr prepare --target origin/main
+ado-assist pr prepare --target origin/main --apply
 ado-assist post "<review-draft-file>"
 ```
 
@@ -245,6 +247,8 @@ npm run dev -- prs --project project --repo repo
 npm run dev -- review-open --project project --repo repo --mode quality --limit 5
 npm run dev -- review-local --target origin/main --mode full
 npm run dev -- review-local --target origin/main --output ./reviews
+npm run dev -- pr prepare --target origin/main
+npm run dev -- pr prepare --target origin/main --apply
 npm run dev -- post "<review-draft-file>"
 ```
 
@@ -253,6 +257,10 @@ The `review` command writes a Markdown draft to the configured review draft stor
 The `prs` command lists active pull requests for a configured organization, project, and repository. The `review-open` command creates review drafts for active PRs in that repository and never posts comments automatically. Use `--limit` to review only the first few active PRs.
 
 The `review-local` command reviews the current git branch against a target branch, defaults to `origin/main`, and writes a local pre-PR draft with suggested title, description, risk summary, and review findings. It does not create an Azure DevOps pull request yet; use it before opening a PR to check correctness and improve the PR description.
+
+The `pr prepare` command is the end-to-end local branch workflow. By default it is a dry run: it reviews the current branch and working tree against the target branch, writes the same local draft, infers the Azure DevOps organization/project/repository from the `origin` remote, and prints the generated commit message and PR title. Add `--apply` to stage local changes, commit them with the generated commit message, push the current branch with upstream tracking, and create the Azure DevOps pull request with the generated title and description.
+
+`pr prepare` expects an Azure DevOps `origin` remote such as `ssh.dev.azure.com:v3/org/project/repo` or `https://dev.azure.com/org/project/_git/repo`. It uses `origin/main` as the default target branch. If the branch already has committed changes and the working tree is clean, `--apply` skips the commit step, pushes the branch, and creates the PR from the existing commits.
 
 Use `--mode` to choose the review focus:
 

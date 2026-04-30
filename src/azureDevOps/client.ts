@@ -35,6 +35,13 @@ interface ItemContent {
   };
 }
 
+export interface CreatePullRequestRequest {
+  sourceRefName: string;
+  targetRefName: string;
+  title: string;
+  description: string;
+}
+
 export interface AzureDevOpsClientOptions {
   pat: string;
   fetchImpl?: FetchLike;
@@ -77,6 +84,24 @@ export class AzureDevOpsClient {
       sourceBranch: pullRequest.sourceRefName,
       targetBranch: pullRequest.targetRefName
     }));
+  }
+
+  async createPullRequest(
+    repository: RepositoryRef,
+    request: CreatePullRequestRequest
+  ): Promise<PullRequestRef> {
+    const payload = await this.postJson<{ pullRequestId: number }>(
+      `${this.repositoryBaseUrl(repository)}/pullrequests?api-version=7.1`,
+      request
+    );
+
+    return {
+      organization: repository.organization,
+      project: repository.project,
+      repository: repository.repository,
+      pullRequestId: payload.pullRequestId,
+      url: this.pullRequestUrl(repository, payload.pullRequestId)
+    };
   }
 
   async getPullRequestMetadata(ref: PullRequestRef): Promise<PullRequestMetadata> {
@@ -261,7 +286,7 @@ export class AzureDevOpsClient {
     return (await response.json()) as T;
   }
 
-  private async postJson(url: string, body: unknown): Promise<void> {
+  private async postJson<T = unknown>(url: string, body: unknown): Promise<T> {
     const response = await this.fetchImpl(url, {
       method: "POST",
       headers: {
@@ -274,6 +299,8 @@ export class AzureDevOpsClient {
     if (!response.ok) {
       throw new AppError(`Azure DevOps request failed with ${response.status}`);
     }
+
+    return (await response.json()) as T;
   }
 }
 

@@ -85,6 +85,48 @@ describe("AzureDevOpsClient", () => {
     expect(url.searchParams.get("api-version")).toBe("7.1");
   });
 
+  it("creates pull requests for a repository", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        pullRequestId: 43
+      })
+    });
+    const client = new AzureDevOpsClient({ pat: "pat", fetchImpl: fetchMock });
+
+    const ref = await client.createPullRequest(
+      {
+        organization: "acme",
+        project: "Payments",
+        repository: "api-service"
+      },
+      {
+        sourceRefName: "refs/heads/feature/retry",
+        targetRefName: "refs/heads/main",
+        title: "Add payment retry",
+        description: "Adds retry behavior."
+      }
+    );
+
+    expect(ref).toEqual({
+      organization: "acme",
+      project: "Payments",
+      repository: "api-service",
+      pullRequestId: 43,
+      url: "https://dev.azure.com/acme/Payments/_git/api-service/pullrequest/43"
+    });
+    const url = new URL(fetchMock.mock.calls[0][0]);
+    expect(url.pathname).toBe("/acme/Payments/_apis/git/repositories/api-service/pullrequests");
+    expect(url.searchParams.get("api-version")).toBe("7.1");
+    expect(fetchMock.mock.calls[0][1].method).toBe("POST");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      sourceRefName: "refs/heads/feature/retry",
+      targetRefName: "refs/heads/main",
+      title: "Add payment retry",
+      description: "Adds retry behavior."
+    });
+  });
+
   it("posts approved comments", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
     const client = new AzureDevOpsClient({ pat: "pat", fetchImpl: fetchMock });
