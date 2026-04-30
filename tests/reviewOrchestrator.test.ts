@@ -76,7 +76,7 @@ describe("reviewPullRequest", () => {
     ).rejects.toThrow("Provider returned a comment for a file outside the PR");
   });
 
-  it("rejects malformed provider output", async () => {
+  it("rejects malformed provider output with the invalid field path", async () => {
     await expect(
       reviewPullRequest({
         context: sampleContext,
@@ -92,10 +92,10 @@ describe("reviewPullRequest", () => {
           }
         }
       })
-    ).rejects.toThrow("Provider returned an invalid review result");
+    ).rejects.toThrow("Provider returned an invalid review result: summary must be a non-empty string");
   });
 
-  it("rejects inline comments without a positive line", async () => {
+  it("rejects inline comments without a positive line with the comment path", async () => {
     await expect(
       reviewPullRequest({
         context: sampleContext,
@@ -118,6 +118,6 @@ describe("reviewPullRequest", () => {
           }
         }
       })
-    ).rejects.toThrow("Provider returned an invalid review result");
+    ).rejects.toThrow("Provider returned an invalid review result: comments[0].line must be a positive integer when filePath is set");
   });
 });

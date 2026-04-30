@@ -22,8 +22,9 @@ export async function reviewPullRequest(options: ReviewPullRequestOptions): Prom
 }
 
 function validateReviewResult(result: ReviewResult, changedFiles: Set<string>): void {
-  if (!isReviewResult(result)) {
-    throw new AppError("Provider returned an invalid review result");
+  const validationError = reviewResultValidationError(result);
+  if (validationError) {
+    throw new AppError(`Provider returned an invalid review result: ${validationError}`);
   }
 
   for (const comment of result.comments) {
@@ -33,53 +34,73 @@ function validateReviewResult(result: ReviewResult, changedFiles: Set<string>): 
   }
 }
 
-function isReviewResult(value: unknown): value is ReviewResult {
+function reviewResultValidationError(value: unknown): string | undefined {
   if (!isRecord(value)) {
-    return false;
+    return "result must be an object";
   }
 
-  return (
-    isNonEmptyString(value.summary) &&
-    isNonEmptyString(value.riskSummary) &&
-    Array.isArray(value.comments) &&
-    value.comments.every(isReviewComment)
-  );
+  if (!isNonEmptyString(value.summary)) {
+    return "summary must be a non-empty string";
+  }
+
+  if (!isNonEmptyString(value.riskSummary)) {
+    return "riskSummary must be a non-empty string";
+  }
+
+  if (!Array.isArray(value.comments)) {
+    return "comments must be an array";
+  }
+
+  for (const [index, comment] of value.comments.entries()) {
+    const commentError = reviewCommentValidationError(comment, index);
+    if (commentError) {
+      return commentError;
+    }
+  }
+
+  return undefined;
 }
 
-function isReviewComment(value: unknown): value is ReviewComment {
+function reviewCommentValidationError(value: unknown, index: number): string | undefined {
+  const path = `comments[${index}]`;
+
   if (!isRecord(value)) {
-    return false;
+    return `${path} must be an object`;
   }
 
-  if (!isNonEmptyString(value.id) || !isNonEmptyString(value.message)) {
-    return false;
+  if (!isNonEmptyString(value.id)) {
+    return `${path}.id must be a non-empty string`;
+  }
+
+  if (!isNonEmptyString(value.message)) {
+    return `${path}.message must be a non-empty string`;
   }
 
   if (!["info", "warning", "critical"].includes(String(value.severity))) {
-    return false;
+    return `${path}.severity must be one of: info, warning, critical`;
   }
 
   if (!["correctness", "risk", "tests", "maintainability", "standards"].includes(String(value.category))) {
-    return false;
+    return `${path}.category must be one of: correctness, risk, tests, maintainability, standards`;
   }
 
   if (value.filePath !== undefined && !isNonEmptyString(value.filePath)) {
-    return false;
+    return `${path}.filePath must be a non-empty string when present`;
   }
 
   if (value.filePath !== undefined && (!Number.isInteger(value.line) || Number(value.line) <= 0)) {
-    return false;
+    return `${path}.line must be a positive integer when filePath is set`;
   }
 
   if (value.line !== undefined && (!Number.isInteger(value.line) || Number(value.line) <= 0)) {
-    return false;
+    return `${path}.line must be a positive integer when present`;
   }
 
   if (value.suggestion !== undefined && typeof value.suggestion !== "string") {
-    return false;
+    return `${path}.suggestion must be a string when present`;
   }
 
-  return true;
+  return undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
