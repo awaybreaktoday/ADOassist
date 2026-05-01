@@ -262,6 +262,8 @@ The `pr prepare` command is the end-to-end local branch workflow. By default it 
 
 `pr prepare` expects an Azure DevOps `origin` remote such as `ssh.dev.azure.com:v3/org/project/repo` or `https://dev.azure.com/org/project/_git/repo`. It uses `origin/main` as the default target branch. If the branch already has committed changes and the working tree is clean, `--apply` skips the commit step, pushes the branch, and creates the PR from the existing commits.
 
+For infrastructure and configuration changes, `pr prepare` structures generated PR descriptions with `Summary`, `Validation`, `Risk / Impact`, and `Rollback` sections. It does not claim validation has run unless the PR context shows that evidence; missing validation is written as something to confirm before merge.
+
 Use `--mode` to choose the review focus:
 
 - `full`: code, standards, PR quality gaps, and risk review. This is the default.

@@ -86,7 +86,7 @@ export async function preparePullRequest(options: PreparePullRequestOptions): Pr
     provider: options.provider
   });
   const title = suggestPrTitle(context, review);
-  const description = suggestPrDescription(review);
+  const description = suggestPrDescription(context, review);
   const commitMessage = suggestCommitMessage(context, review);
   const draftFile = localReviewDraftFilename(
     sourceBranch,

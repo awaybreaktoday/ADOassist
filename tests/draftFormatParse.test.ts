@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
-import { formatReviewDraft, reviewDraftFilename } from "../src/drafts/format.js";
+import { formatReviewDraft, reviewDraftFilename, suggestPrDescription } from "../src/drafts/format.js";
 import { parseReviewDraft } from "../src/drafts/parse.js";
 import { sampleContext, sampleReview } from "./fixtures/sampleReview.js";
 
@@ -75,5 +75,33 @@ describe("review draft format and parse", () => {
     const parsed = parseReviewDraft(draft);
 
     expect(parsed.comments).toEqual(review.comments);
+  });
+
+  it("structures suggested PR descriptions for infrastructure changes", () => {
+    const description = suggestPrDescription(
+      {
+        ...sampleContext,
+        files: [
+          {
+            path: "/aks/dev/vars/mjoyeux/westeurope.tfvars",
+            diff: "@@ -1 +1 @@\n-1.33.0\n+1.33.8\n"
+          }
+        ]
+      },
+      {
+        ...sampleReview,
+        suggestedDescription:
+          "Updates platform-01 node pool orchestrator_version from 1.33.0 to 1.33.8."
+      }
+    );
+
+    expect(description).toContain("## Summary");
+    expect(description).toContain("Updates platform-01 node pool orchestrator_version from 1.33.0 to 1.33.8.");
+    expect(description).toContain("## Validation");
+    expect(description).toContain("Confirm the relevant Azure DevOps checks, Terraform validation, or plan output before merge.");
+    expect(description).toContain("## Risk / Impact");
+    expect(description).toContain(sampleReview.riskSummary);
+    expect(description).toContain("## Rollback");
+    expect(description).toContain("Revert this PR or restore the previous infrastructure values and redeploy through the normal pipeline.");
   });
 });

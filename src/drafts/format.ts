@@ -85,7 +85,7 @@ ${suggestPrTitle(context, review)}
 
 ### Description
 
-${suggestPrDescription(review)}
+${suggestPrDescription(context, review)}
 
 ## Summary
 
@@ -144,10 +144,14 @@ export function suggestPrTitle(context: PullRequestContext, review: ReviewResult
   return `Update ${context.metadata.sourceBranch}`;
 }
 
-export function suggestPrDescription(review: ReviewResult): string {
+export function suggestPrDescription(context: PullRequestContext, review: ReviewResult): string {
   const suggestedDescription = review.suggestedDescription?.trim();
-  if (suggestedDescription) {
+  if (suggestedDescription && (!isInfrastructureChange(context) || hasStructuredPrSections(suggestedDescription))) {
     return suggestedDescription;
+  }
+
+  if (isInfrastructureChange(context)) {
+    return formatInfrastructurePrDescription(suggestedDescription ?? review.summary, review);
   }
 
   return `Summary:
@@ -169,4 +173,40 @@ export function suggestCommitMessage(context: PullRequestContext, review: Review
 function cleanSingleLine(value: string | undefined): string | undefined {
   const cleaned = value?.replace(/\s+/g, " ").trim();
   return cleaned && !cleaned.endsWith("...") ? cleaned : undefined;
+}
+
+function formatInfrastructurePrDescription(summary: string, review: ReviewResult): string {
+  return `## Summary
+${summary}
+
+## Validation
+Confirm the relevant Azure DevOps checks, Terraform validation, or plan output before merge.
+
+## Risk / Impact
+${review.riskSummary}
+
+## Rollback
+Revert this PR or restore the previous infrastructure values and redeploy through the normal pipeline.`;
+}
+
+function hasStructuredPrSections(value: string): boolean {
+  return ["summary", "validation", "risk", "rollback"].every((heading) =>
+    new RegExp(`^#{1,3}\\s+.*${heading}`, "im").test(value)
+  );
+}
+
+function isInfrastructureChange(context: PullRequestContext): boolean {
+  return context.files.some((file) => {
+    const path = file.path.toLowerCase();
+    return (
+      /\.(tf|tfvars|bicep|ya?ml|jsonnet)$/.test(path) ||
+      path.includes("/aks/") ||
+      path.includes("/terraform/") ||
+      path.includes("/infra/") ||
+      path.includes("/infrastructure/") ||
+      path.includes("/k8s/") ||
+      path.includes("/kubernetes/") ||
+      path.includes("/helm/")
+    );
+  });
 }

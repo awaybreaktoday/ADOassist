@@ -24,6 +24,8 @@ export function providerSystemPrompt(): string {
     "Each comment must include id, severity, category, and message.",
     "Omit optional fields entirely when they do not apply; do not use empty strings, zero, or null for optional fields.",
     "When reviewing local branch changes, include suggestedTitle, suggestedDescription, and suggestedCommitMessage.",
+    "For infrastructure, Terraform, Kubernetes, Helm, Azure, or config changes, suggestedDescription must use Markdown sections: Summary, Validation, Risk / Impact, and Rollback.",
+    "Do not claim validation was performed unless it is present in the supplied PR context; phrase missing validation as something to confirm before merge.",
     "Keep suggestedTitle concise and complete; do not end it with an ellipsis or an unfinished phrase.",
     "Keep suggestedCommitMessage as one conventional commit-style subject line unless a body is essential.",
     "Use filePath and line together for inline comments; omit both for general PR comments. suggestion is optional.",

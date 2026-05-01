@@ -22,7 +22,7 @@ export async function preparePullRequest(options) {
         provider: options.provider
     });
     const title = suggestPrTitle(context, review);
-    const description = suggestPrDescription(review);
+    const description = suggestPrDescription(context, review);
     const commitMessage = suggestCommitMessage(context, review);
     const draftFile = localReviewDraftFilename(sourceBranch, options.targetBranch, resolveReviewOutputDir(options.outputDir ?? options.config.outputDir));
     await mkdir(dirname(draftFile), { recursive: true });
