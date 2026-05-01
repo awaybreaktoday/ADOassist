@@ -11,12 +11,18 @@ export interface ReviewPullRequestOptions {
 
 export async function reviewPullRequest(options: ReviewPullRequestOptions): Promise<ReviewResult> {
   const rubric = buildReviewRubric(options.emphasis);
-  const changedFiles = new Set(options.context.files.map((file) => file.path));
+  const changedFilePaths = options.context.files.map((file) => file.path);
+  const changedFiles = new Set(changedFilePaths);
+  const changedFileAliases = changedFilePathAliases(changedFilePaths);
   const result = await options.provider.reviewPullRequest({
     pullRequest: options.context,
     rubric
   });
-  const normalizedResult = normalizeReviewResult(result, isQualityOnlyMode(options.emphasis));
+  const normalizedResult = normalizeReviewResult(
+    result,
+    isQualityOnlyMode(options.emphasis),
+    changedFileAliases
+  );
 
   validateReviewResult(normalizedResult, changedFiles);
   return normalizedResult;
@@ -35,18 +41,28 @@ function validateReviewResult(result: ReviewResult, changedFiles: Set<string>): 
   }
 }
 
-function normalizeReviewResult(result: ReviewResult, forceGeneralComments: boolean): ReviewResult {
+function normalizeReviewResult(
+  result: ReviewResult,
+  forceGeneralComments: boolean,
+  changedFileAliases: Map<string, string>
+): ReviewResult {
   if (!isRecord(result) || !Array.isArray(result.comments)) {
     return result;
   }
 
   return {
     ...result,
-    comments: result.comments.map((comment) => normalizeReviewComment(comment, forceGeneralComments))
+    comments: result.comments.map((comment) =>
+      normalizeReviewComment(comment, forceGeneralComments, changedFileAliases)
+    )
   };
 }
 
-function normalizeReviewComment(comment: ReviewComment, forceGeneralComment: boolean): ReviewComment {
+function normalizeReviewComment(
+  comment: ReviewComment,
+  forceGeneralComment: boolean,
+  changedFileAliases: Map<string, string>
+): ReviewComment {
   if (!isRecord(comment)) {
     return comment;
   }
@@ -59,7 +75,7 @@ function normalizeReviewComment(comment: ReviewComment, forceGeneralComment: boo
     delete normalized.filePath;
     delete normalized.line;
   } else {
-    normalized.filePath = filePath;
+    normalized.filePath = changedFileAliases.get(normalizeFilePathAlias(filePath)) ?? filePath;
   }
 
   if (suggestion === undefined) {
@@ -69,6 +85,38 @@ function normalizeReviewComment(comment: ReviewComment, forceGeneralComment: boo
   }
 
   return normalized as unknown as ReviewComment;
+}
+
+function changedFilePathAliases(paths: string[]): Map<string, string> {
+  const aliases = new Map<string, string>();
+
+  for (const path of paths) {
+    for (const alias of candidateFilePathAliases(path)) {
+      aliases.set(alias, path);
+    }
+  }
+
+  return aliases;
+}
+
+function candidateFilePathAliases(path: string): string[] {
+  const normalized = normalizeFilePathAlias(path);
+  const withoutLeadingSlash = normalized.startsWith("/") ? normalized.slice(1) : normalized;
+  const withLeadingSlash = normalized.startsWith("/") ? normalized : `/${normalized}`;
+
+  return [
+    normalized,
+    withoutLeadingSlash,
+    withLeadingSlash,
+    `a/${withoutLeadingSlash}`,
+    `b/${withoutLeadingSlash}`,
+    `/a/${withoutLeadingSlash}`,
+    `/b/${withoutLeadingSlash}`
+  ];
+}
+
+function normalizeFilePathAlias(path: string): string {
+  return path.trim().replace(/\\/g, "/");
 }
 
 function isQualityOnlyMode(emphasis: ReviewEmphasis[]): boolean {

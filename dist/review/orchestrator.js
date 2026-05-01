@@ -2,12 +2,14 @@ import { AppError } from "../errors.js";
 import { buildReviewRubric } from "./rubric.js";
 export async function reviewPullRequest(options) {
     const rubric = buildReviewRubric(options.emphasis);
-    const changedFiles = new Set(options.context.files.map((file) => file.path));
+    const changedFilePaths = options.context.files.map((file) => file.path);
+    const changedFiles = new Set(changedFilePaths);
+    const changedFileAliases = changedFilePathAliases(changedFilePaths);
     const result = await options.provider.reviewPullRequest({
         pullRequest: options.context,
         rubric
     });
-    const normalizedResult = normalizeReviewResult(result, isQualityOnlyMode(options.emphasis));
+    const normalizedResult = normalizeReviewResult(result, isQualityOnlyMode(options.emphasis), changedFileAliases);
     validateReviewResult(normalizedResult, changedFiles);
     return normalizedResult;
 }
@@ -22,16 +24,16 @@ function validateReviewResult(result, changedFiles) {
         }
     }
 }
-function normalizeReviewResult(result, forceGeneralComments) {
+function normalizeReviewResult(result, forceGeneralComments, changedFileAliases) {
     if (!isRecord(result) || !Array.isArray(result.comments)) {
         return result;
     }
     return {
         ...result,
-        comments: result.comments.map((comment) => normalizeReviewComment(comment, forceGeneralComments))
+        comments: result.comments.map((comment) => normalizeReviewComment(comment, forceGeneralComments, changedFileAliases))
     };
 }
-function normalizeReviewComment(comment, forceGeneralComment) {
+function normalizeReviewComment(comment, forceGeneralComment, changedFileAliases) {
     if (!isRecord(comment)) {
         return comment;
     }
@@ -43,7 +45,7 @@ function normalizeReviewComment(comment, forceGeneralComment) {
         delete normalized.line;
     }
     else {
-        normalized.filePath = filePath;
+        normalized.filePath = changedFileAliases.get(normalizeFilePathAlias(filePath)) ?? filePath;
     }
     if (suggestion === undefined) {
         delete normalized.suggestion;
@@ -52,6 +54,32 @@ function normalizeReviewComment(comment, forceGeneralComment) {
         normalized.suggestion = suggestion;
     }
     return normalized;
+}
+function changedFilePathAliases(paths) {
+    const aliases = new Map();
+    for (const path of paths) {
+        for (const alias of candidateFilePathAliases(path)) {
+            aliases.set(alias, path);
+        }
+    }
+    return aliases;
+}
+function candidateFilePathAliases(path) {
+    const normalized = normalizeFilePathAlias(path);
+    const withoutLeadingSlash = normalized.startsWith("/") ? normalized.slice(1) : normalized;
+    const withLeadingSlash = normalized.startsWith("/") ? normalized : `/${normalized}`;
+    return [
+        normalized,
+        withoutLeadingSlash,
+        withLeadingSlash,
+        `a/${withoutLeadingSlash}`,
+        `b/${withoutLeadingSlash}`,
+        `/a/${withoutLeadingSlash}`,
+        `/b/${withoutLeadingSlash}`
+    ];
+}
+function normalizeFilePathAlias(path) {
+    return path.trim().replace(/\\/g, "/");
 }
 function isQualityOnlyMode(emphasis) {
     return emphasis.length === 1 && emphasis[0] === "quality";

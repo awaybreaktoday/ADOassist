@@ -50,6 +50,44 @@ describe("reviewPullRequest", () => {
     ).rejects.toThrow("Provider returned a comment for a file outside the PR");
   });
 
+  it("normalizes provider comment paths to changed file paths", async () => {
+    const result = await reviewPullRequest({
+      context: sampleContext,
+      emphasis: ["general"],
+      provider: {
+        name: "mock",
+        async reviewPullRequest() {
+          return {
+            ...sampleReview,
+            comments: [
+              {
+                id: "relative",
+                filePath: "src/payments/retry.ts",
+                line: 2,
+                severity: "warning",
+                category: "correctness",
+                message: "Relative file path."
+              },
+              {
+                id: "diff-prefix",
+                filePath: "b/src/payments/retry.ts",
+                line: 2,
+                severity: "warning",
+                category: "correctness",
+                message: "Diff-prefixed file path."
+              }
+            ]
+          };
+        }
+      }
+    });
+
+    expect(result.comments.map((comment) => comment.filePath)).toEqual([
+      "/src/payments/retry.ts",
+      "/src/payments/retry.ts"
+    ]);
+  });
+
   it("does not let providers mutate PR context to bypass file validation", async () => {
     await expect(
       reviewPullRequest({
