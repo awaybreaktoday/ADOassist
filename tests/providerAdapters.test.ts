@@ -110,6 +110,7 @@ describe("AnthropicReviewProvider", () => {
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.model).toBe("claude-3-5-sonnet-latest");
     expect(body.max_tokens).toBe(4096);
+    expect(body.temperature).toBe(0.1);
     expect(body.system).toContain("Use filePath and line together for inline comments");
     expect(body.messages).toEqual([
       {
@@ -117,6 +118,41 @@ describe("AnthropicReviewProvider", () => {
         content: JSON.stringify({ pullRequest: sampleContext, rubric: "rubric" })
       }
     ]);
+  });
+
+  it("omits deprecated temperature for Claude Opus 4.7", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(anthropicResponse(JSON.stringify(sampleReview)));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const provider = new AnthropicReviewProvider("key", "claude-opus-4-7", 4096);
+    await provider.reviewPullRequest({ pullRequest: sampleContext, rubric: "rubric" });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.model).toBe("claude-opus-4-7");
+    expect(body.temperature).toBeUndefined();
+  });
+
+  it("includes Anthropic error messages in request failures", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () =>
+          JSON.stringify({
+            type: "error",
+            error: {
+              type: "invalid_request_error",
+              message: "`temperature` is deprecated for this model."
+            }
+          })
+      })
+    );
+
+    const provider = new AnthropicReviewProvider("key", "claude-opus-4-7", 4096);
+    await expect(provider.reviewPullRequest({ pullRequest: sampleContext, rubric: "rubric" })).rejects.toThrow(
+      "Anthropic request failed with 400: `temperature` is deprecated for this model."
+    );
   });
 
   it("normalizes malformed JSON responses", async () => {

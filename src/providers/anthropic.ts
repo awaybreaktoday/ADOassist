@@ -16,6 +16,17 @@ export class AnthropicReviewProvider implements ReviewProvider {
   }
 
   async reviewPullRequest(input: ReviewInput): Promise<ReviewResult> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      max_tokens: this.maxTokens,
+      system: providerSystemPrompt(),
+      messages: [{ role: "user", content: JSON.stringify(input) }]
+    };
+
+    if (supportsTemperature(this.model)) {
+      body.temperature = 0.1;
+    }
+
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -23,17 +34,11 @@ export class AnthropicReviewProvider implements ReviewProvider {
         "Content-Type": "application/json",
         "x-api-key": this.apiKey
       },
-      body: JSON.stringify({
-        model: this.model,
-        max_tokens: this.maxTokens,
-        temperature: 0.1,
-        system: providerSystemPrompt(),
-        messages: [{ role: "user", content: JSON.stringify(input) }]
-      })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
-      throw new AppError(`Anthropic request failed with ${response.status}`);
+      throw new AppError(`Anthropic request failed with ${response.status}${await errorDetails(response)}`);
     }
 
     const payload = (await response.json()) as {
@@ -46,4 +51,26 @@ export class AnthropicReviewProvider implements ReviewProvider {
 
     return parseProviderReviewContent("Anthropic", content);
   }
+}
+
+function supportsTemperature(model: string): boolean {
+  return model !== "claude-opus-4-7";
+}
+
+async function errorDetails(response: Response): Promise<string> {
+  const text = await response.text();
+  if (!text.trim()) {
+    return "";
+  }
+
+  try {
+    const payload = JSON.parse(text) as { error?: { message?: unknown } };
+    if (typeof payload.error?.message === "string" && payload.error.message.trim()) {
+      return `: ${payload.error.message.trim()}`;
+    }
+  } catch {
+    // Fall through to the raw body below.
+  }
+
+  return `: ${text.trim()}`;
 }
