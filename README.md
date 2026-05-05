@@ -238,6 +238,7 @@ ado-assist pr prepare --target origin/main
 ado-assist pr prepare --target origin/main --check-docs azure
 ado-assist pr prepare --target origin/main --check-docs azure-aks
 ado-assist pr prepare --target origin/main --apply
+ado-assist eval providers --target origin/main --providers openai,anthropic,gemini --check-docs azure --expect "missing quote,invalid CIDR"
 ado-assist post "<review-draft-file>"
 ```
 
@@ -255,6 +256,7 @@ npm run dev -- pr prepare --target origin/main
 npm run dev -- pr prepare --target origin/main --check-docs azure
 npm run dev -- pr prepare --target origin/main --check-docs azure-aks
 npm run dev -- pr prepare --target origin/main --apply
+npm run dev -- eval providers --target origin/main --providers openai,anthropic,gemini --check-docs azure --expect "missing quote,invalid CIDR"
 npm run dev -- post "<review-draft-file>"
 ```
 
@@ -271,6 +273,8 @@ The `pr prepare` command is the end-to-end local branch workflow. By default it 
 For infrastructure and configuration changes, `pr prepare` structures generated PR descriptions with `Summary`, `Validation`, `Risk / Impact`, and `Rollback` sections. It does not claim validation has run unless the PR context shows that evidence; missing validation is written as something to confirm before merge.
 
 Use `--check-docs azure` with `review`, `review-local`, or `pr prepare` to inspect the changed files and diff, auto-detect a supported Azure documentation profile, and fetch trusted docs before asking the model to review. The first auto-detected profile is AKS, covering `aks`, `azurerm_kubernetes_cluster`, `kubernetes_version`, `orchestrator_version`, node pool, and AKS networking signals. Use `--check-docs azure-aks` to force that profile explicitly. The sourced facts are passed to every provider, including local OpenAI-compatible models, and the generated draft includes a `Factual Checks` section with the checked sources. This is curated Microsoft Learn retrieval, not a general web search.
+
+Use `eval providers` to compare providers against the same local branch diff. It runs dry-run PR preparation once per provider, writes each provider draft under the output directory, and writes a `summary.md` with runtime, severity counts, generated title, draft path, and optional expected-term hits. `--providers` accepts `openai`, `azure-openai`, `anthropic`, `gemini`, and `openai-compatible`. If `--providers` is omitted, it evaluates the currently configured provider. `--expect` is optional and is useful for repeatable checks such as whether each provider noticed `missing quote` or `invalid CIDR`.
 
 Use `--mode` to choose the review focus:
 

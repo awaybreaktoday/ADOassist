@@ -2,11 +2,12 @@ import { createRequire } from "node:module";
 import { Command } from "commander";
 import { AzureDevOpsClient } from "./azureDevOps/client.js";
 import { runConfigSetup } from "./commands/configSetup.js";
-import { defaultUserConfigPath, initUserConfig, loadAzureDevOpsConfigFromFileAndEnv, loadConfigFromFileAndEnv, loadUserConfigFile } from "./config.js";
+import { defaultUserConfigPath, initUserConfig, loadConfig, loadAzureDevOpsConfigFromFileAndEnv, loadConfigFromFileAndEnv, loadUserConfigFile } from "./config.js";
 import { resolveDocCheckProfile } from "./docs/check.js";
 import { createLocalReviewDraft } from "./commands/local.js";
 import { postReviewDraftFile } from "./commands/post.js";
 import { preparePullRequest } from "./commands/prepare.js";
+import { resolveEvalProviderKinds, resolveExpectedTerms, runProviderEval } from "./commands/evaluate.js";
 import { listOpenPullRequests, resolveLimit, reviewOpenPullRequests } from "./commands/prs.js";
 import { createReviewDraft, resolveReviewMode } from "./commands/review.js";
 import { GitClient } from "./git/client.js";
@@ -165,6 +166,45 @@ export function createCli() {
         }
         else {
             console.log("Dry run only. Re-run with --apply to stage, commit, push, and create the pull request.");
+        }
+    });
+    const evalCommand = program.command("eval").description("Compare provider review output");
+    evalCommand
+        .command("providers")
+        .description("Run dry-run PR preparation across one or more providers and write a comparison summary")
+        .option("--target <branch>", "target branch to compare against", "origin/main")
+        .option("--mode <mode>", "review mode: full, code, quality, or risk")
+        .option("--providers <list>", "comma-separated providers: openai, azure-openai, anthropic, gemini, openai-compatible")
+        .option("--output <dir>", "directory for generated eval drafts", ".ado-assist-evals")
+        .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
+        .option("--expect <terms>", "comma-separated terms to check for in each generated draft")
+        .action(async (options) => {
+        const userConfig = await loadUserConfigFile(selectedConfigPath());
+        const fallbackProvider = (process.env.ADO_ASSIST_PROVIDER ?? userConfig.provider?.kind);
+        const providerKinds = resolveEvalProviderKinds(options.providers, fallbackProvider);
+        const git = new GitClient();
+        const client = new AzureDevOpsClient({ pat: "unused-for-dry-run" });
+        const result = await runProviderEval({
+            targetBranch: options.target,
+            mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
+            outputDir: options.output,
+            checkDocs: resolveDocCheckProfile(options.checkDocs),
+            providerKinds,
+            expectedTerms: resolveExpectedTerms(options.expect),
+            git,
+            client,
+            configForProvider(providerKind) {
+                return loadConfig(userConfig, { ...process.env, ADO_ASSIST_PROVIDER: providerKind });
+            }
+        });
+        console.log(`Provider eval summary written to ${result.summaryFile}`);
+        for (const entry of result.results) {
+            if (entry.status === "success") {
+                console.log(`${entry.provider}: success in ${entry.runtimeMs}ms`);
+            }
+            else {
+                console.log(`${entry.provider}: failed in ${entry.runtimeMs}ms: ${entry.error}`);
+            }
         }
     });
     const config = program.command("config").description("Manage ADO Assist user configuration");
