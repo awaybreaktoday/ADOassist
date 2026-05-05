@@ -228,12 +228,14 @@ After installing the command:
 ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123"
 ado-assist review --project project --repo repo --pr 123
 ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123" --mode quality
+ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123" --mode quality --check-docs azure
 ado-assist review "https://dev.azure.com/org/project/_git/repo/pullrequest/123" --mode quality --check-docs azure-aks
 ado-assist prs --project project --repo repo
 ado-assist review-open --project project --repo repo --mode quality --limit 5
 ado-assist review-local --target origin/main --mode full
 ado-assist review-local --target origin/main --output ./reviews
 ado-assist pr prepare --target origin/main
+ado-assist pr prepare --target origin/main --check-docs azure
 ado-assist pr prepare --target origin/main --check-docs azure-aks
 ado-assist pr prepare --target origin/main --apply
 ado-assist post "<review-draft-file>"
@@ -250,6 +252,7 @@ npm run dev -- review-open --project project --repo repo --mode quality --limit 
 npm run dev -- review-local --target origin/main --mode full
 npm run dev -- review-local --target origin/main --output ./reviews
 npm run dev -- pr prepare --target origin/main
+npm run dev -- pr prepare --target origin/main --check-docs azure
 npm run dev -- pr prepare --target origin/main --check-docs azure-aks
 npm run dev -- pr prepare --target origin/main --apply
 npm run dev -- post "<review-draft-file>"
@@ -267,7 +270,7 @@ The `pr prepare` command is the end-to-end local branch workflow. By default it 
 
 For infrastructure and configuration changes, `pr prepare` structures generated PR descriptions with `Summary`, `Validation`, `Risk / Impact`, and `Rollback` sections. It does not claim validation has run unless the PR context shows that evidence; missing validation is written as something to confirm before merge.
 
-Use `--check-docs azure-aks` with `review`, `review-local`, or `pr prepare` to fetch trusted Microsoft Learn AKS documentation before asking the model to review. The sourced facts are passed to every provider, including local OpenAI-compatible models, and the generated draft includes a `Factual Checks` section with the checked sources. In the first implementation this is an explicit Azure AKS profile; it is not a general web search.
+Use `--check-docs azure` with `review`, `review-local`, or `pr prepare` to inspect the changed files and diff, auto-detect a supported Azure documentation profile, and fetch trusted docs before asking the model to review. The first auto-detected profile is AKS, covering `aks`, `azurerm_kubernetes_cluster`, `kubernetes_version`, `orchestrator_version`, node pool, and AKS networking signals. Use `--check-docs azure-aks` to force that profile explicitly. The sourced facts are passed to every provider, including local OpenAI-compatible models, and the generated draft includes a `Factual Checks` section with the checked sources. This is curated Microsoft Learn retrieval, not a general web search.
 
 Use `--mode` to choose the review focus:
 

@@ -43,7 +43,7 @@ export function createCli(): Command {
     .option("--pr <pull-request-id>")
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--output <dir>", "directory for generated review drafts")
-    .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure-aks")
+    .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
     .action(
       async (
         prUrl: string | undefined,
@@ -71,7 +71,7 @@ export function createCli(): Command {
     .option("--target <branch>", "target branch to compare against", "origin/main")
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--output <dir>", "directory for generated review drafts")
-    .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure-aks")
+    .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
     .action(async (options: { target: string; mode?: string; output?: string; checkDocs?: string | boolean }) => {
       const config = await loadConfigFromFileAndEnv(selectedConfigPath());
       const provider = createReviewProvider(config);
@@ -165,7 +165,7 @@ export function createCli(): Command {
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--output <dir>", "directory for generated review drafts")
     .option("--apply", "stage, commit, push, and create the Azure DevOps PR")
-    .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure-aks")
+    .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
     .action(async (options: { target: string; mode?: string; output?: string; apply?: boolean; checkDocs?: string | boolean }) => {
       const config = await loadConfigFromFileAndEnv(selectedConfigPath());
       const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });

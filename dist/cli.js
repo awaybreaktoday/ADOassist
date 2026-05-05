@@ -32,7 +32,7 @@ export function createCli() {
         .option("--pr <pull-request-id>")
         .option("--mode <mode>", "review mode: full, code, quality, or risk")
         .option("--output <dir>", "directory for generated review drafts")
-        .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure-aks")
+        .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
         .action(async (prUrl, options) => {
         const config = await loadConfigFromFileAndEnv(selectedConfigPath());
         const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
@@ -54,7 +54,7 @@ export function createCli() {
         .option("--target <branch>", "target branch to compare against", "origin/main")
         .option("--mode <mode>", "review mode: full, code, quality, or risk")
         .option("--output <dir>", "directory for generated review drafts")
-        .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure-aks")
+        .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
         .action(async (options) => {
         const config = await loadConfigFromFileAndEnv(selectedConfigPath());
         const provider = createReviewProvider(config);
@@ -137,7 +137,7 @@ export function createCli() {
         .option("--mode <mode>", "review mode: full, code, quality, or risk")
         .option("--output <dir>", "directory for generated review drafts")
         .option("--apply", "stage, commit, push, and create the Azure DevOps PR")
-        .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure-aks")
+        .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
         .action(async (options) => {
         const config = await loadConfigFromFileAndEnv(selectedConfigPath());
         const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });

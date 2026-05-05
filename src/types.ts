@@ -1,6 +1,6 @@
 export type ReviewMode = "full" | "code" | "quality" | "risk";
 export type ReviewEmphasis = "general" | "standards" | "quality" | "risk";
-export type DocCheckProfile = "azure-aks";
+export type DocCheckProfile = "azure" | "azure-aks";
 
 export type ProviderConfig =
   | {

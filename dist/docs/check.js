@@ -50,11 +50,15 @@ export function resolveDocCheckProfile(value) {
     if (value === true || value === "" || value === "azure-aks") {
         return "azure-aks";
     }
-    throw new AppError("--check-docs must be azure-aks");
+    if (value === "azure") {
+        return "azure";
+    }
+    throw new AppError("--check-docs must be azure or azure-aks");
 }
 export async function checkDocs(profile, options = {}) {
-    if (profile !== "azure-aks") {
-        throw new AppError("--check-docs must be azure-aks");
+    const resolvedProfile = profile === "azure" ? detectAzureProfile(options.context) : profile;
+    if (resolvedProfile !== "azure-aks") {
+        throw new AppError("--check-docs must be azure or azure-aks");
     }
     const fetchImpl = options.fetchImpl ?? fetch;
     const checkedSources = [];
@@ -73,8 +77,40 @@ export async function checkDocs(profile, options = {}) {
         profile,
         checkedAt: (options.checkedAt ?? new Date()).toISOString(),
         sources: checkedSources,
-        facts: azureAksFacts
+        facts: profile === "azure" ? detectedAzureFacts(resolvedProfile) : azureAksFacts
     };
+}
+function detectAzureProfile(context) {
+    if (context && hasAksSignals(context)) {
+        return "azure-aks";
+    }
+    throw new AppError("Could not detect a supported Azure doc profile from the PR context. Use --check-docs azure-aks for AKS changes.");
+}
+function detectedAzureFacts(profile) {
+    return [
+        {
+            text: `ADO Assist detected Azure doc profile ${profile} from the changed files and diff content.`,
+            sourceUrl: azureAksSources[0].url
+        },
+        ...azureAksFacts
+    ];
+}
+function hasAksSignals(context) {
+    const haystack = context.files
+        .map((file) => `${file.path}\n${file.diff}`)
+        .join("\n")
+        .toLowerCase();
+    return [
+        "aks",
+        "azurerm_kubernetes_cluster",
+        "kubernetes_version",
+        "orchestrator_version",
+        "node_pools",
+        "node_pool",
+        "agent_pool",
+        "agents_max_count",
+        "net_profile_pod_cidr"
+    ].some((signal) => haystack.includes(signal));
 }
 function extractTitle(html) {
     const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);

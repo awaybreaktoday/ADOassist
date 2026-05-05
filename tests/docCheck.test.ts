@@ -6,9 +6,10 @@ describe("resolveDocCheckProfile", () => {
     expect(resolveDocCheckProfile(true)).toBe("azure-aks");
   });
 
-  it("accepts azure-aks and rejects unsupported profiles", () => {
+  it("accepts azure and azure-aks and rejects unsupported profiles", () => {
+    expect(resolveDocCheckProfile("azure")).toBe("azure");
     expect(resolveDocCheckProfile("azure-aks")).toBe("azure-aks");
-    expect(() => resolveDocCheckProfile("kubernetes")).toThrow("--check-docs must be azure-aks");
+    expect(() => resolveDocCheckProfile("kubernetes")).toThrow("--check-docs must be azure or azure-aks");
   });
 });
 
@@ -39,5 +40,69 @@ describe("checkDocs", () => {
     expect(result.facts.map((fact) => fact.text)).toContain(
       "When control plane and node pool versions differ, describe the skew as at or near a supported limit unless the supplied docs explicitly prove it exceeds that limit; ask reviewers to verify current AKS skew rules."
     );
+  });
+
+  it("auto-detects AKS docs for --check-docs azure", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => "<html><title>AKS docs</title><main>content</main></html>"
+    });
+
+    const result = await checkDocs("azure", {
+      fetchImpl: fetchMock,
+      checkedAt: new Date("2026-05-05T12:00:00Z"),
+      context: {
+        ref: {
+          organization: "local",
+          project: "local",
+          repository: "feature/aks",
+          pullRequestId: 0,
+          url: "local://feature%2Faks"
+        },
+        metadata: {
+          title: "Local changes",
+          description: "Local diff",
+          author: "Local Git",
+          sourceBranch: "feature/aks",
+          targetBranch: "origin/main",
+          url: "local://feature%2Faks"
+        },
+        files: [
+          {
+            path: "/aks/dev/vars/westeurope.tfvars",
+            diff: "-kubernetes_version = \"1.32.6\"\n+kubernetes_version = \"1.34.0\""
+          }
+        ]
+      }
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(result.profile).toBe("azure");
+    expect(result.facts[0].text).toBe("ADO Assist detected Azure doc profile azure-aks from the changed files and diff content.");
+  });
+
+  it("rejects --check-docs azure when no supported Azure topic is detected", async () => {
+    await expect(
+      checkDocs("azure", {
+        context: {
+          ref: {
+            organization: "local",
+            project: "local",
+            repository: "feature/readme",
+            pullRequestId: 0,
+            url: "local://feature%2Freadme"
+          },
+          metadata: {
+            title: "Local changes",
+            description: "Local diff",
+            author: "Local Git",
+            sourceBranch: "feature/readme",
+            targetBranch: "origin/main",
+            url: "local://feature%2Freadme"
+          },
+          files: [{ path: "/README.md", diff: "+hello" }]
+        }
+      })
+    ).rejects.toThrow("Could not detect a supported Azure doc profile from the PR context");
   });
 });

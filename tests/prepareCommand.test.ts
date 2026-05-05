@@ -154,11 +154,16 @@ describe("preparePullRequest", () => {
           throw new Error("dry-run should not create a PR");
         }
       },
-      docChecker: async (profile) => ({
+      docChecker: async (profile, docOptions) => ({
         profile,
         checkedAt: "2026-05-05T12:00:00.000Z",
         sources: [{ title: "AKS upgrade", url: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster" }],
-        facts: [{ text: "AKS upgrades must follow supported paths.", sourceUrl: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster" }]
+        facts: [
+          {
+            text: `Checked ${docOptions?.context?.files[0]?.path}`,
+            sourceUrl: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster"
+          }
+        ]
       }),
       provider: {
         name: "mock",
@@ -177,7 +182,7 @@ describe("preparePullRequest", () => {
 
     const markdown = await readFile(result.draftFile, "utf8");
     expect(markdown).toContain("## Factual Checks");
-    expect(markdown).toContain("AKS upgrades must follow supported paths.");
+    expect(markdown).toContain("Checked /aks/dev/vars/westeurope.tfvars");
   });
 
   it("stages, commits, pushes, and creates a pull request when apply is enabled", async () => {

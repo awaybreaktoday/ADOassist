@@ -13,7 +13,7 @@ export async function createReviewDraft(options) {
     const files = await options.client.getChangedFiles(ref);
     const context = { ref, metadata, files };
     const docEvidence = options.checkDocs
-        ? await (options.docChecker ?? checkDocs)(options.checkDocs)
+        ? await (options.docChecker ?? checkDocs)(options.checkDocs, { context })
         : undefined;
     const review = await reviewPullRequest({
         context,

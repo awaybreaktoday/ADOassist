@@ -22,7 +22,7 @@ export interface LocalReviewCommandOptions {
   git: LocalGitClient;
   provider: ReviewProvider;
   checkDocs?: DocCheckProfile;
-  docChecker?: (profile: DocCheckProfile) => Promise<DocEvidence>;
+  docChecker?: (profile: DocCheckProfile, options?: { context: PullRequestContext }) => Promise<DocEvidence>;
 }
 
 export async function createLocalReviewDraft(options: LocalReviewCommandOptions): Promise<string> {
@@ -35,7 +35,7 @@ export async function createLocalReviewDraft(options: LocalReviewCommandOptions)
 
   const context = buildLocalPullRequestContext(sourceBranch, options.targetBranch, files);
   const docEvidence = options.checkDocs
-    ? await (options.docChecker ?? checkDocs)(options.checkDocs)
+    ? await (options.docChecker ?? checkDocs)(options.checkDocs, { context })
     : undefined;
   const review = await reviewPullRequest({
     context,

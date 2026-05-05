@@ -18,7 +18,7 @@ export async function preparePullRequest(options) {
     const repository = resolveRepositoryRefFromRemote(await options.git.remoteUrl("origin"));
     const context = buildLocalPullRequestContext(sourceBranch, options.targetBranch, files);
     const docEvidence = options.checkDocs
-        ? await (options.docChecker ?? checkDocs)(options.checkDocs)
+        ? await (options.docChecker ?? checkDocs)(options.checkDocs, { context })
         : undefined;
     const review = await reviewPullRequest({
         context,
