@@ -24,6 +24,8 @@ export function providerSystemPrompt() {
         "Each comment must include id, severity, category, and message.",
         "Omit optional fields entirely when they do not apply; do not use empty strings, zero, or null for optional fields.",
         "When reviewing local branch changes, include suggestedTitle, suggestedDescription, and suggestedCommitMessage.",
+        "suggestedTitle and suggestedCommitMessage must describe the actual diff in the branch, not the desired remediation.",
+        "Do not use suggestedTitle or suggestedCommitMessage to describe a desired fix unless the diff already implements that fix.",
         "For infrastructure, Terraform, Kubernetes, Helm, Azure, or config changes, suggestedDescription must use Markdown sections: Summary, Validation, Risk / Impact, and Rollback.",
         "Do not claim validation was performed unless it is present in the supplied PR context; phrase missing validation as something to confirm before merge.",
         "If docEvidence is supplied, treat it as higher priority than model memory. Do not contradict sourced facts. Mention uncertainty when a fact requires region/account verification.",

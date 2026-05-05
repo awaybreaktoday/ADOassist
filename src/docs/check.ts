@@ -41,6 +41,14 @@ const azureAksFacts: DocFact[] = [
     sourceUrl: "https://learn.microsoft.com/en-us/azure/aks/supported-kubernetes-versions"
   },
   {
+    text: "Use `az aks get-versions --location <region>` to verify regional Kubernetes version availability, and `az aks get-upgrades --resource-group <rg> --name <cluster>` to verify supported upgrade paths for an existing cluster.",
+    sourceUrl: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster"
+  },
+  {
+    text: "When control plane and node pool versions differ, describe the skew as at or near a supported limit unless the supplied docs explicitly prove it exceeds that limit; ask reviewers to verify current AKS skew rules.",
+    sourceUrl: "https://learn.microsoft.com/en-us/azure/aks/upgrade-node-pools"
+  },
+  {
     text: "AKS node pool version rollback is a limited feature with documented constraints; do not describe Terraform version reverts as a guaranteed rollback after apply.",
     sourceUrl: "https://learn.microsoft.com/en-us/azure/aks/roll-back-node-pool-version"
   }

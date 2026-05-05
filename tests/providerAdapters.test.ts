@@ -30,6 +30,8 @@ describe("OpenAIReviewProvider", () => {
     expect(body.response_format).toEqual({ type: "json_object" });
     expect(body.messages[0].role).toBe("system");
     expect(body.messages[0].content).toContain("Use filePath and line together for inline comments");
+    expect(body.messages[0].content).toContain("suggestedTitle and suggestedCommitMessage must describe the actual diff");
+    expect(body.messages[0].content).toContain("Do not use suggestedTitle or suggestedCommitMessage to describe a desired fix");
     expect(body.messages[0].content).toContain('"summary": "string"');
     expect(body.messages[0].content).toContain('"comments": [');
     expect(body.messages[1]).toEqual({

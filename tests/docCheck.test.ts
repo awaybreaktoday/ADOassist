@@ -33,5 +33,11 @@ describe("checkDocs", () => {
     expect(result.facts.map((fact) => fact.text)).toContain(
       "AKS control plane and node pool Kubernetes downgrades are not supported through the normal upgrade/update path."
     );
+    expect(result.facts.map((fact) => fact.text)).toContain(
+      "Use `az aks get-versions --location <region>` to verify regional Kubernetes version availability, and `az aks get-upgrades --resource-group <rg> --name <cluster>` to verify supported upgrade paths for an existing cluster."
+    );
+    expect(result.facts.map((fact) => fact.text)).toContain(
+      "When control plane and node pool versions differ, describe the skew as at or near a supported limit unless the supplied docs explicitly prove it exceeds that limit; ask reviewers to verify current AKS skew rules."
+    );
   });
 });
