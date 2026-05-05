@@ -26,6 +26,7 @@ export function providerSystemPrompt(): string {
     "When reviewing local branch changes, include suggestedTitle, suggestedDescription, and suggestedCommitMessage.",
     "For infrastructure, Terraform, Kubernetes, Helm, Azure, or config changes, suggestedDescription must use Markdown sections: Summary, Validation, Risk / Impact, and Rollback.",
     "Do not claim validation was performed unless it is present in the supplied PR context; phrase missing validation as something to confirm before merge.",
+    "If docEvidence is supplied, treat it as higher priority than model memory. Do not contradict sourced facts. Mention uncertainty when a fact requires region/account verification.",
     "Keep suggestedTitle concise and complete; do not end it with an ellipsis or an unfinished phrase.",
     "Keep suggestedCommitMessage as one conventional commit-style subject line unless a body is essential.",
     "Use filePath and line together for inline comments; omit both for general PR comments. suggestion is optional.",

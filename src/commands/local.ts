@@ -1,12 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { checkDocs } from "../docs/check.js";
 import { formatLocalReviewDraft, localReviewDraftFilename as draftFilename } from "../drafts/format.js";
 import { AppError } from "../errors.js";
 import type { ReviewProvider } from "../providers/types.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
 import { reviewEmphasisForMode } from "../review/rubric.js";
 import { resolveReviewOutputDir } from "../storage/paths.js";
-import type { AppConfig, ChangedFile, PullRequestContext, ReviewMode } from "../types.js";
+import type { AppConfig, ChangedFile, DocCheckProfile, DocEvidence, PullRequestContext, ReviewMode } from "../types.js";
 
 export interface LocalGitClient {
   currentBranch(): Promise<string>;
@@ -20,6 +21,8 @@ export interface LocalReviewCommandOptions {
   config: AppConfig;
   git: LocalGitClient;
   provider: ReviewProvider;
+  checkDocs?: DocCheckProfile;
+  docChecker?: (profile: DocCheckProfile) => Promise<DocEvidence>;
 }
 
 export async function createLocalReviewDraft(options: LocalReviewCommandOptions): Promise<string> {
@@ -31,10 +34,14 @@ export async function createLocalReviewDraft(options: LocalReviewCommandOptions)
   }
 
   const context = buildLocalPullRequestContext(sourceBranch, options.targetBranch, files);
+  const docEvidence = options.checkDocs
+    ? await (options.docChecker ?? checkDocs)(options.checkDocs)
+    : undefined;
   const review = await reviewPullRequest({
     context,
     emphasis: options.mode ? reviewEmphasisForMode(options.mode) : options.config.reviewEmphasis,
-    provider: options.provider
+    provider: options.provider,
+    docEvidence
   });
   const markdown = formatLocalReviewDraft(context, review);
   const filename = localReviewDraftFilename(

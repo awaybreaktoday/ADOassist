@@ -117,6 +117,69 @@ describe("preparePullRequest", () => {
     await expect(readFile(result.draftFile, "utf8")).resolves.toContain("Add payment retry");
   });
 
+  it("checks docs and includes factual evidence in dry-run drafts", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ado-assist-prepare-"));
+
+    const result = await preparePullRequest({
+      targetBranch: "origin/main",
+      outputDir: tempDir,
+      apply: false,
+      checkDocs: "azure-aks",
+      config: baseConfig,
+      git: {
+        async currentBranch() {
+          return "feature/aks-upgrade";
+        },
+        async changedFilesIncludingWorkingTree() {
+          return [{ path: "/aks/dev/vars/westeurope.tfvars", diff: "@@ -1 +1 @@\n-1.32.6\n+1.34.0\n" }];
+        },
+        async hasWorkingTreeChanges() {
+          return true;
+        },
+        async remoteUrl() {
+          return "ssh.dev.azure.com:v3/acme/Payments/api-service";
+        },
+        async stageAll() {
+          throw new Error("dry-run should not stage files");
+        },
+        async commit() {
+          throw new Error("dry-run should not commit");
+        },
+        async pushCurrentBranch() {
+          throw new Error("dry-run should not push");
+        }
+      },
+      client: {
+        async createPullRequest() {
+          throw new Error("dry-run should not create a PR");
+        }
+      },
+      docChecker: async (profile) => ({
+        profile,
+        checkedAt: "2026-05-05T12:00:00.000Z",
+        sources: [{ title: "AKS upgrade", url: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster" }],
+        facts: [{ text: "AKS upgrades must follow supported paths.", sourceUrl: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster" }]
+      }),
+      provider: {
+        name: "mock",
+        async reviewPullRequest(input) {
+          expect(input.docEvidence?.profile).toBe("azure-aks");
+          return {
+            ...sampleReview,
+            suggestedTitle: "Upgrade AKS",
+            suggestedDescription: "Upgrade AKS safely.",
+            suggestedCommitMessage: "aks: upgrade",
+            comments: []
+          };
+        }
+      }
+    });
+
+    const markdown = await readFile(result.draftFile, "utf8");
+    expect(markdown).toContain("## Factual Checks");
+    expect(markdown).toContain("AKS upgrades must follow supported paths.");
+  });
+
   it("stages, commits, pushes, and creates a pull request when apply is enabled", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "ado-assist-prepare-"));
     const actions: string[] = [];

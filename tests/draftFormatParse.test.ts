@@ -16,6 +16,24 @@ describe("review draft format and parse", () => {
     expect(parsed.comments).toEqual(sampleReview.comments);
   });
 
+  it("prints factual check sources when docs were checked", () => {
+    const draft = formatReviewDraft(sampleContext, {
+      ...sampleReview,
+      docEvidence: {
+        profile: "azure-aks",
+        checkedAt: "2026-05-05T12:00:00.000Z",
+        sources: [{ title: "AKS upgrade", url: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster" }],
+        facts: [{ text: "AKS upgrades must follow supported paths.", sourceUrl: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster" }]
+      }
+    });
+
+    expect(draft).toContain("## Factual Checks");
+    expect(draft).toContain("Profile: azure-aks");
+    expect(draft).toContain("AKS upgrades must follow supported paths.");
+    expect(draft).toContain("Sources:");
+    expect(draft).toContain("[AKS upgrade](https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster)");
+  });
+
   it("allows users to remove comments before posting", () => {
     const draft = formatReviewDraft(sampleContext, sampleReview);
     const edited = draft.replace(/,\n    \{[\s\S]*?comment-2[\s\S]*?\n    \}/, "");

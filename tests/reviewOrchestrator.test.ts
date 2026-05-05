@@ -23,6 +23,27 @@ describe("reviewPullRequest", () => {
     expect(result).toEqual(sampleReview);
   });
 
+  it("passes doc evidence to the configured provider", async () => {
+    await reviewPullRequest({
+      context: sampleContext,
+      emphasis: ["general"],
+      docEvidence: {
+        profile: "azure-aks",
+        checkedAt: "2026-05-05T12:00:00.000Z",
+        sources: [{ title: "AKS upgrade", url: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster" }],
+        facts: [{ text: "AKS upgrades must follow supported paths.", sourceUrl: "https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-cluster" }]
+      },
+      provider: {
+        name: "mock",
+        async reviewPullRequest(input) {
+          expect(input.docEvidence?.profile).toBe("azure-aks");
+          expect(input.docEvidence?.facts[0].text).toContain("AKS upgrades");
+          return sampleReview;
+        }
+      }
+    });
+  });
+
   it("rejects comments for files not in the PR", async () => {
     await expect(
       reviewPullRequest({

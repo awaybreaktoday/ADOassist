@@ -1,5 +1,6 @@
 export type ReviewMode = "full" | "code" | "quality" | "risk";
 export type ReviewEmphasis = "general" | "standards" | "quality" | "risk";
+export type DocCheckProfile = "azure-aks";
 
 export type ProviderConfig =
   | {
@@ -99,5 +100,23 @@ export interface ReviewResult {
   suggestedTitle?: string;
   suggestedDescription?: string;
   suggestedCommitMessage?: string;
+  docEvidence?: DocEvidence;
   comments: ReviewComment[];
+}
+
+export interface DocSource {
+  title: string;
+  url: string;
+}
+
+export interface DocFact {
+  text: string;
+  sourceUrl: string;
+}
+
+export interface DocEvidence {
+  profile: DocCheckProfile;
+  checkedAt: string;
+  sources: DocSource[];
+  facts: DocFact[];
 }

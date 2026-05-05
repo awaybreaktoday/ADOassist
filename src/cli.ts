@@ -9,6 +9,7 @@ import {
   loadConfigFromFileAndEnv,
   loadUserConfigFile
 } from "./config.js";
+import { resolveDocCheckProfile } from "./docs/check.js";
 import { createLocalReviewDraft } from "./commands/local.js";
 import { postReviewDraftFile } from "./commands/post.js";
 import { preparePullRequest } from "./commands/prepare.js";
@@ -42,10 +43,11 @@ export function createCli(): Command {
     .option("--pr <pull-request-id>")
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--output <dir>", "directory for generated review drafts")
+    .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure-aks")
     .action(
       async (
         prUrl: string | undefined,
-        options: { project?: string; repo?: string; pr?: string; mode?: string; output?: string }
+        options: { project?: string; repo?: string; pr?: string; mode?: string; output?: string; checkDocs?: string | boolean }
       ) => {
         const config = await loadConfigFromFileAndEnv(selectedConfigPath());
         const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
@@ -54,6 +56,7 @@ export function createCli(): Command {
           target: { prUrl, project: options.project, repo: options.repo, pr: options.pr },
           mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
           outputDir: options.output,
+          checkDocs: resolveDocCheckProfile(options.checkDocs),
           config,
           client,
           provider
@@ -68,7 +71,8 @@ export function createCli(): Command {
     .option("--target <branch>", "target branch to compare against", "origin/main")
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--output <dir>", "directory for generated review drafts")
-    .action(async (options: { target: string; mode?: string; output?: string }) => {
+    .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure-aks")
+    .action(async (options: { target: string; mode?: string; output?: string; checkDocs?: string | boolean }) => {
       const config = await loadConfigFromFileAndEnv(selectedConfigPath());
       const provider = createReviewProvider(config);
       const git = new GitClient();
@@ -76,6 +80,7 @@ export function createCli(): Command {
         targetBranch: options.target,
         mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
         outputDir: options.output,
+        checkDocs: resolveDocCheckProfile(options.checkDocs),
         config,
         git,
         provider
@@ -160,7 +165,8 @@ export function createCli(): Command {
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--output <dir>", "directory for generated review drafts")
     .option("--apply", "stage, commit, push, and create the Azure DevOps PR")
-    .action(async (options: { target: string; mode?: string; output?: string; apply?: boolean }) => {
+    .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure-aks")
+    .action(async (options: { target: string; mode?: string; output?: string; apply?: boolean; checkDocs?: string | boolean }) => {
       const config = await loadConfigFromFileAndEnv(selectedConfigPath());
       const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
       const provider = createReviewProvider(config);
@@ -170,6 +176,7 @@ export function createCli(): Command {
         mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
         outputDir: options.output,
         apply: options.apply === true,
+        checkDocs: resolveDocCheckProfile(options.checkDocs),
         config,
         git,
         client,

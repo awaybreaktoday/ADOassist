@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { checkDocs } from "../docs/check.js";
 import { formatLocalReviewDraft, localReviewDraftFilename, suggestCommitMessage, suggestPrDescription, suggestPrTitle } from "../drafts/format.js";
 import { AppError } from "../errors.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
@@ -16,10 +17,14 @@ export async function preparePullRequest(options) {
     }
     const repository = resolveRepositoryRefFromRemote(await options.git.remoteUrl("origin"));
     const context = buildLocalPullRequestContext(sourceBranch, options.targetBranch, files);
+    const docEvidence = options.checkDocs
+        ? await (options.docChecker ?? checkDocs)(options.checkDocs)
+        : undefined;
     const review = await reviewPullRequest({
         context,
         emphasis: options.mode ? reviewEmphasisForMode(options.mode) : options.config.reviewEmphasis,
-        provider: options.provider
+        provider: options.provider,
+        docEvidence
     });
     const title = suggestPrTitle(context, review);
     const description = suggestPrDescription(context, review);

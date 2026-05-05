@@ -41,6 +41,8 @@ ${review.summary}
 
 ${review.riskSummary}
 
+${formatDocEvidence(review)}
+
 ## Suggested Inline Comments
 
 ${formatHumanComments(inlineComments)}
@@ -95,6 +97,8 @@ ${review.summary}
 
 ${review.riskSummary}
 
+${formatDocEvidence(review)}
+
 ## Suggested Inline Comments
 
 ${formatHumanComments(inlineComments)}
@@ -128,6 +132,27 @@ function formatHumanComments(comments: ReviewResult["comments"]): string {
       return `- [${comment.severity}] ${location} (${comment.category})\n  ${comment.message}${suggestion}`;
     })
     .join("\n\n");
+}
+
+function formatDocEvidence(review: ReviewResult): string {
+  if (!review.docEvidence) {
+    return "";
+  }
+
+  const evidence = review.docEvidence;
+  const facts = evidence.facts.map((fact) => `- ${fact.text}`).join("\n");
+  const sources = evidence.sources.map((source) => `- [${source.title}](${source.url})`).join("\n");
+
+  return `## Factual Checks
+
+Profile: ${evidence.profile}
+Checked: ${evidence.checkedAt}
+
+${facts}
+
+Sources:
+${sources}
+`;
 }
 
 export function suggestPrTitle(context: PullRequestContext, review: ReviewResult): string {

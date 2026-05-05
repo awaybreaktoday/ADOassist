@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { parsePullRequestUrl } from "../azureDevOps/url.js";
+import { checkDocs } from "../docs/check.js";
 import { formatReviewDraft, reviewDraftFilename } from "../drafts/format.js";
 import { AppError } from "../errors.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
@@ -11,10 +12,14 @@ export async function createReviewDraft(options) {
     const metadata = await options.client.getPullRequestMetadata(ref);
     const files = await options.client.getChangedFiles(ref);
     const context = { ref, metadata, files };
+    const docEvidence = options.checkDocs
+        ? await (options.docChecker ?? checkDocs)(options.checkDocs)
+        : undefined;
     const review = await reviewPullRequest({
         context,
         emphasis: options.mode ? reviewEmphasisForMode(options.mode) : options.config.reviewEmphasis,
-        provider: options.provider
+        provider: options.provider,
+        docEvidence
     });
     const markdown = formatReviewDraft(context, review);
     const filename = reviewDraftFilename(context, resolveReviewOutputDir(options.outputDir ?? options.config.outputDir));

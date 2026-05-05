@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { checkDocs } from "../docs/check.js";
 import { formatLocalReviewDraft, localReviewDraftFilename as draftFilename } from "../drafts/format.js";
 import { AppError } from "../errors.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
@@ -12,10 +13,14 @@ export async function createLocalReviewDraft(options) {
         throw new AppError(`No local changes found against ${options.targetBranch}`);
     }
     const context = buildLocalPullRequestContext(sourceBranch, options.targetBranch, files);
+    const docEvidence = options.checkDocs
+        ? await (options.docChecker ?? checkDocs)(options.checkDocs)
+        : undefined;
     const review = await reviewPullRequest({
         context,
         emphasis: options.mode ? reviewEmphasisForMode(options.mode) : options.config.reviewEmphasis,
-        provider: options.provider
+        provider: options.provider,
+        docEvidence
     });
     const markdown = formatLocalReviewDraft(context, review);
     const filename = localReviewDraftFilename(sourceBranch, options.targetBranch, resolveReviewOutputDir(options.outputDir ?? options.config.outputDir));

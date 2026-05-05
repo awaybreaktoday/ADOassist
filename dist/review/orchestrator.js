@@ -7,11 +7,12 @@ export async function reviewPullRequest(options) {
     const changedFileAliases = changedFilePathAliases(changedFilePaths);
     const result = await options.provider.reviewPullRequest({
         pullRequest: options.context,
-        rubric
+        rubric,
+        docEvidence: options.docEvidence
     });
     const normalizedResult = normalizeReviewResult(result, isQualityOnlyMode(options.emphasis), changedFileAliases);
     validateReviewResult(normalizedResult, changedFiles);
-    return normalizedResult;
+    return options.docEvidence ? { ...normalizedResult, docEvidence: options.docEvidence } : normalizedResult;
 }
 function validateReviewResult(result, changedFiles) {
     const validationError = reviewResultValidationError(result);

@@ -1,12 +1,13 @@
 import { AppError } from "../errors.js";
 import type { ReviewProvider } from "../providers/types.js";
-import type { PullRequestContext, ReviewComment, ReviewEmphasis, ReviewResult } from "../types.js";
+import type { DocEvidence, PullRequestContext, ReviewComment, ReviewEmphasis, ReviewResult } from "../types.js";
 import { buildReviewRubric } from "./rubric.js";
 
 export interface ReviewPullRequestOptions {
   context: PullRequestContext;
   emphasis: ReviewEmphasis[];
   provider: ReviewProvider;
+  docEvidence?: DocEvidence;
 }
 
 export async function reviewPullRequest(options: ReviewPullRequestOptions): Promise<ReviewResult> {
@@ -16,7 +17,8 @@ export async function reviewPullRequest(options: ReviewPullRequestOptions): Prom
   const changedFileAliases = changedFilePathAliases(changedFilePaths);
   const result = await options.provider.reviewPullRequest({
     pullRequest: options.context,
-    rubric
+    rubric,
+    docEvidence: options.docEvidence
   });
   const normalizedResult = normalizeReviewResult(
     result,
@@ -25,7 +27,7 @@ export async function reviewPullRequest(options: ReviewPullRequestOptions): Prom
   );
 
   validateReviewResult(normalizedResult, changedFiles);
-  return normalizedResult;
+  return options.docEvidence ? { ...normalizedResult, docEvidence: options.docEvidence } : normalizedResult;
 }
 
 function validateReviewResult(result: ReviewResult, changedFiles: Set<string>): void {
