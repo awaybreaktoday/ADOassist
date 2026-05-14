@@ -39,6 +39,9 @@ export class AnthropicReviewProvider {
         if (!content) {
             throw new AppError("Anthropic response did not include review content");
         }
+        if (payload.stop_reason === "max_tokens") {
+            throw new AppError("Anthropic response hit max_tokens before completing review JSON. Increase ADO_ASSIST_ANTHROPIC_MAX_TOKENS, for example to 8192 or 12000.");
+        }
         return parseProviderReviewContent("Anthropic", content);
     }
 }

@@ -42,7 +42,7 @@ describe("loadConfigFromEnv", () => {
 
     expect(config.provider.kind).toBe("anthropic");
     expect(config.provider.model).toBe("claude-3-5-sonnet-latest");
-    expect(config.provider.maxTokens).toBe(4096);
+    expect(config.provider.maxTokens).toBe(8192);
   });
 
   it("loads Gemini configuration", () => {

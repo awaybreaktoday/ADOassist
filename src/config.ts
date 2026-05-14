@@ -211,7 +211,7 @@ export function loadConfig(userConfig: UserConfig = {}, env: Env = process.env):
         maxTokens: optionalPositiveInteger(
           env,
           "ADO_ASSIST_ANTHROPIC_MAX_TOKENS",
-          userProviderNumber(userConfig, "maxTokens") ?? 4096
+          userProviderNumber(userConfig, "maxTokens") ?? 8192
         )
       },
       reviewEmphasis: loadReviewEmphasis(userConfig, env),

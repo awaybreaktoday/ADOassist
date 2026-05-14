@@ -166,6 +166,15 @@ describe("AnthropicReviewProvider", () => {
     );
   });
 
+  it("reports Anthropic max token truncation before JSON parsing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(anthropicResponse('{"summary":"cut off"', "max_tokens")));
+
+    const provider = new AnthropicReviewProvider("key", "claude-opus-4-7", 4096);
+    await expect(provider.reviewPullRequest({ pullRequest: sampleContext, rubric: "rubric" })).rejects.toThrow(
+      "Anthropic response hit max_tokens before completing review JSON. Increase ADO_ASSIST_ANTHROPIC_MAX_TOKENS"
+    );
+  });
+
   it("reports missing review content", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ content: [] }) }));
 
@@ -285,11 +294,12 @@ function okResponse(content: string): Response {
   } as Response;
 }
 
-function anthropicResponse(content: string): Response {
+function anthropicResponse(content: string, stopReason = "end_turn"): Response {
   return {
     ok: true,
     json: async () => ({
-      content: [{ type: "text", text: content }]
+      content: [{ type: "text", text: content }],
+      stop_reason: stopReason
     })
   } as Response;
 }

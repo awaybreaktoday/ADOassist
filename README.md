@@ -196,7 +196,7 @@ export ADO_ASSIST_AZURE_DEVOPS_ORG="org"
 export ADO_ASSIST_AZURE_DEVOPS_TOKEN="..."
 export ADO_ASSIST_OUTPUT_DIR="$HOME/.local/share/ado-assist/reviews"
 export ADO_ASSIST_REVIEW_EMPHASIS="general,standards,quality,risk"
-export ADO_ASSIST_ANTHROPIC_MAX_TOKENS="4096"
+export ADO_ASSIST_ANTHROPIC_MAX_TOKENS="8192"
 export ADO_ASSIST_OPENAI_COMPAT_API_KEY="..."
 ```
 

@@ -121,7 +121,7 @@ export function loadConfig(userConfig = {}, env = process.env) {
                 kind: "anthropic",
                 apiKey: requireValue(env, "ADO_ASSIST_ANTHROPIC_API_KEY"),
                 model: requireResolvedValue("ADO_ASSIST_ANTHROPIC_MODEL", env.ADO_ASSIST_ANTHROPIC_MODEL, userProviderValue(userConfig, "model")),
-                maxTokens: optionalPositiveInteger(env, "ADO_ASSIST_ANTHROPIC_MAX_TOKENS", userProviderNumber(userConfig, "maxTokens") ?? 4096)
+                maxTokens: optionalPositiveInteger(env, "ADO_ASSIST_ANTHROPIC_MAX_TOKENS", userProviderNumber(userConfig, "maxTokens") ?? 8192)
             },
             reviewEmphasis: loadReviewEmphasis(userConfig, env),
             outputDir: loadOutputDir(userConfig, env)
