@@ -105,4 +105,60 @@ describe("checkDocs", () => {
       })
     ).rejects.toThrow("Could not detect a supported Azure doc profile from the PR context");
   });
+
+  it("does not auto-detect AKS docs for Azure Pipelines and Entra group changes", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => "<html><title>AKS docs</title><main>content</main></html>"
+    });
+
+    await expect(
+      checkDocs("azure", {
+        fetchImpl: fetchMock,
+        context: {
+          ref: {
+            organization: "testshipping",
+            project: "iac-entra-groups",
+            repository: "iac-platform-entra-groups",
+            pullRequestId: 178,
+            url: "https://dev.azure.com/testshipping/iac-entra-groups/_git/iac-platform-entra-groups/pullrequest/178"
+          },
+          metadata: {
+            title: "chore: add ai to pipeline, add error to main.tf",
+            description: "chore: add ai to pipeline, add error to main.tf",
+            author: "mark.joyeux",
+            sourceBranch: "refs/heads/ado/ai-assist-add",
+            targetBranch: "refs/heads/main",
+            url: "https://dev.azure.com/testshipping/iac-entra-groups/_git/iac-platform-entra-groups/pullrequest/178"
+          },
+          files: [
+            {
+              path: "/entra-groups/azure-pipelines.yml",
+              diff: [
+                " # creates are referenced (not owned) by every platform's tenant-AKS",
+                " # pipelines via display-name data sources.",
+                "+- group: AI",
+                "+- task: NodeTool@0",
+                "+  inputs:",
+                "+    versionSpec: '24.x'",
+                "+- script: |",
+                "+    npm install -g ado-assist@latest",
+                "+    ado-assist review --check-docs azure",
+                "+  env:",
+                "+    ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE: bearer",
+                "+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)",
+                "+    ADO_ASSIST_PROVIDER: anthropic",
+                "+    ADO_ASSIST_ANTHROPIC_MODEL: claude-opus-4-7"
+              ].join("\n")
+            },
+            {
+              path: "/entra-groups/prd/main.tf",
+              diff: '-resource "azuread_group" "this" {\n+esource "azuread_group" "this" {'
+            }
+          ]
+        }
+      })
+    ).rejects.toThrow("Could not detect a supported Azure doc profile from the PR context");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

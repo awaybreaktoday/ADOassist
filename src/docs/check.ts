@@ -123,22 +123,26 @@ function detectedAzureFacts(profile: Exclude<DocCheckProfile, "azure">): DocFact
 }
 
 function hasAksSignals(context: PullRequestContext): boolean {
-  const haystack = context.files
-    .map((file) => `${file.path}\n${file.diff}`)
-    .join("\n")
-    .toLowerCase();
+  return context.files.some((file) => {
+    const path = file.path.toLowerCase();
+    const diff = file.diff.toLowerCase();
+    const haystack = `${path}\n${diff}`;
 
-  return [
-    "aks",
-    "azurerm_kubernetes_cluster",
-    "kubernetes_version",
-    "orchestrator_version",
-    "node_pools",
-    "node_pool",
-    "agent_pool",
-    "agents_max_count",
-    "net_profile_pod_cidr"
-  ].some((signal) => haystack.includes(signal));
+    return (
+      /(^|\/)(aks|kubernetes|k8s)(\/|$)/.test(path) ||
+      [
+        "azurerm_kubernetes_cluster",
+        "azurerm_kubernetes_cluster_node_pool",
+        "kubernetes_version",
+        "orchestrator_version",
+        "node_pools",
+        "node_pool",
+        "agent_pool",
+        "agents_max_count",
+        "net_profile_pod_cidr"
+      ].some((signal) => haystack.includes(signal))
+    );
+  });
 }
 
 function extractTitle(html: string): string | undefined {
