@@ -226,7 +226,7 @@ The variables above last for the current terminal session. Put them in your Powe
 
 ### Azure Pipelines With System.AccessToken
 
-Azure Pipelines can use its job OAuth token instead of a long-lived Azure DevOps PAT. The build service identity must have enough repository permission to read PR data, and Code write permission if the pipeline posts comments.
+Azure Pipelines can use its job OAuth token instead of a long-lived Azure DevOps PAT. The build service identity must have enough repository permission to read PR data, and permission to contribute to pull requests/code reviews if the pipeline posts comments.
 
 ```yaml
 trigger: none
@@ -261,7 +261,7 @@ steps:
       ADO_ASSIST_OPENAI_MODEL: gpt-5.4
 ```
 
-In YAML pipelines, pass `$(System.AccessToken)` into the script environment as `SYSTEM_ACCESSTOKEN`. If your organization restricts job authorization scope or protected repository access, grant the pipeline build service identity access to the target repository/project.
+In YAML pipelines, pass `$(System.AccessToken)` into the script environment as `SYSTEM_ACCESSTOKEN`. If your organization restricts job authorization scope or protected repository access, grant the pipeline build service identity access to the target repository/project. For `ado-assist post`, grant the project build service identity, usually named `<project> Build Service (<organization>)`, permission to contribute to pull requests/code reviews on the target repository.
 
 ## Usage
 

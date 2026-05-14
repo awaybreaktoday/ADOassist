@@ -111,7 +111,7 @@ export class AzureDevOpsClient {
                     comments: [{ parentCommentId: 0, content: formatComment(comment), commentType: 1 }],
                     status: 1
                 };
-            await this.postJson(`${this.baseUrl(ref)}/pullRequests/${ref.pullRequestId}/threads?api-version=7.1`, body);
+            await this.postJson(`${this.baseUrl(ref)}/pullRequests/${ref.pullRequestId}/threads?api-version=7.1`, body, "posting PR comments");
         }
     }
     baseUrl(ref) {
@@ -174,7 +174,7 @@ export class AzureDevOpsClient {
         }
         return (await response.json());
     }
-    async postJson(url, body) {
+    async postJson(url, body, operation) {
         const response = await this.fetchImpl(url, {
             method: "POST",
             headers: {
@@ -184,9 +184,38 @@ export class AzureDevOpsClient {
             body: JSON.stringify(body)
         });
         if (!response.ok) {
-            throw new AppError(`Azure DevOps request failed with ${response.status}`);
+            throw new AppError(await azureDevOpsErrorMessage(response, operation));
         }
         return (await response.json());
+    }
+}
+async function azureDevOpsErrorMessage(response, operation) {
+    const operationDetail = operation ? ` while ${operation}` : "";
+    const hint = response.status === 403 && operation === "posting PR comments"
+        ? " Grant the pipeline build service identity permission to contribute to pull requests/code reviews on this repository."
+        : "";
+    const details = await responseDetails(response);
+    return `Azure DevOps request failed with ${response.status}${operationDetail}.${hint}${details}`;
+}
+async function responseDetails(response) {
+    try {
+        const text = await response.text();
+        if (!text.trim()) {
+            return "";
+        }
+        try {
+            const parsed = JSON.parse(text);
+            const message = typeof parsed.message === "string" ? parsed.message.trim() : "";
+            const typeName = typeof parsed.typeName === "string" ? parsed.typeName.trim() : "";
+            const details = [message, typeName].filter(Boolean).join(" ");
+            return details ? ` Details: ${details}` : "";
+        }
+        catch {
+            return ` Details: ${text.trim().slice(0, 500)}`;
+        }
+    }
+    catch {
+        return "";
     }
 }
 function formatComment(comment) {

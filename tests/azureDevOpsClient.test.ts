@@ -166,6 +166,31 @@ describe("AzureDevOpsClient", () => {
     expect(body.threadContext.rightFileStart.line).toBe(2);
   });
 
+  it("adds an actionable hint when posting comments is forbidden", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () =>
+        JSON.stringify({
+          message: "TF401019: The Git repository with name or identifier api-service does not exist or you do not have permissions."
+        })
+    });
+    const client = new AzureDevOpsClient({ authMode: "bearer", token: "system-token", fetchImpl: fetchMock });
+
+    await expect(
+      client.postComments(sampleContext.ref, [
+        {
+          id: "comment-1",
+          severity: "warning",
+          category: "risk",
+          message: "Please add rollback notes."
+        }
+      ])
+    ).rejects.toThrow(
+      "Azure DevOps request failed with 403 while posting PR comments. Grant the pipeline build service identity permission to contribute to pull requests/code reviews on this repository."
+    );
+  });
+
   it("fetches changed files and builds unified diffs from PR iteration content", async () => {
     const fetchMock = vi
       .fn()

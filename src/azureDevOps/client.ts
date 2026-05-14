@@ -205,7 +205,8 @@ export class AzureDevOpsClient {
 
       await this.postJson(
         `${this.baseUrl(ref)}/pullRequests/${ref.pullRequestId}/threads?api-version=7.1`,
-        body
+        body,
+        "posting PR comments"
       );
     }
   }
@@ -303,7 +304,7 @@ export class AzureDevOpsClient {
     return (await response.json()) as T;
   }
 
-  private async postJson<T = unknown>(url: string, body: unknown): Promise<T> {
+  private async postJson<T = unknown>(url: string, body: unknown, operation?: string): Promise<T> {
     const response = await this.fetchImpl(url, {
       method: "POST",
       headers: {
@@ -314,10 +315,41 @@ export class AzureDevOpsClient {
     });
 
     if (!response.ok) {
-      throw new AppError(`Azure DevOps request failed with ${response.status}`);
+      throw new AppError(await azureDevOpsErrorMessage(response, operation));
     }
 
     return (await response.json()) as T;
+  }
+}
+
+async function azureDevOpsErrorMessage(response: Response, operation?: string): Promise<string> {
+  const operationDetail = operation ? ` while ${operation}` : "";
+  const hint =
+    response.status === 403 && operation === "posting PR comments"
+      ? " Grant the pipeline build service identity permission to contribute to pull requests/code reviews on this repository."
+      : "";
+  const details = await responseDetails(response);
+  return `Azure DevOps request failed with ${response.status}${operationDetail}.${hint}${details}`;
+}
+
+async function responseDetails(response: Response): Promise<string> {
+  try {
+    const text = await response.text();
+    if (!text.trim()) {
+      return "";
+    }
+
+    try {
+      const parsed = JSON.parse(text) as { message?: unknown; typeName?: unknown };
+      const message = typeof parsed.message === "string" ? parsed.message.trim() : "";
+      const typeName = typeof parsed.typeName === "string" ? parsed.typeName.trim() : "";
+      const details = [message, typeName].filter(Boolean).join(" ");
+      return details ? ` Details: ${details}` : "";
+    } catch {
+      return ` Details: ${text.trim().slice(0, 500)}`;
+    }
+  } catch {
+    return "";
   }
 }
 
