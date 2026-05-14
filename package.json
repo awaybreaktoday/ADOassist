@@ -1,6 +1,6 @@
 {
   "name": "ado-assist",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "AI-assisted Azure DevOps PR review CLI for local use and Azure DevOps Pipelines, with draft Markdown reviews and approved comment posting.",
   "type": "module",
   "repository": {
