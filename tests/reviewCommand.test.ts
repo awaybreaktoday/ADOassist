@@ -8,6 +8,8 @@ import { sampleContext, sampleReview } from "./fixtures/sampleReview.js";
 
 const baseConfig: AppConfig = {
   azureDevOps: {
+    authMode: "pat",
+    token: "pat",
     pat: "pat",
     organization: "acme"
   },
@@ -120,7 +122,7 @@ describe("resolvePullRequestRef", () => {
         },
         {
           ...baseConfig,
-          azureDevOps: { pat: "pat" }
+          azureDevOps: { authMode: "pat", token: "pat", pat: "pat" }
         }
       )
     ).toThrow("ADO_ASSIST_AZURE_DEVOPS_ORG is required when reviewing without a PR URL");

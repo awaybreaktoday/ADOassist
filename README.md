@@ -15,7 +15,7 @@ Deleted files and binary files are skipped in the first implementation. Large PR
 - Node.js 24 LTS
 - npm
 - git
-- An Azure DevOps PAT with Code read access for drafting reviews, and Code write access if you want to post comments
+- Azure DevOps auth: either a PAT with Code read access for drafting reviews and Code write access for posting comments, or Azure Pipelines `System.AccessToken` with equivalent build service permissions
 - One configured model provider: OpenAI, Azure OpenAI, Anthropic Claude, Google Gemini, or an OpenAI-compatible server such as llama.cpp
 
 ### Install From npm
@@ -191,12 +191,16 @@ export ADO_ASSIST_OPENAI_COMPAT_MODEL="local-model"
 Optional:
 
 ```bash
+export ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE="pat"
 export ADO_ASSIST_AZURE_DEVOPS_ORG="org"
+export ADO_ASSIST_AZURE_DEVOPS_TOKEN="..."
 export ADO_ASSIST_OUTPUT_DIR="$HOME/.local/share/ado-assist/reviews"
 export ADO_ASSIST_REVIEW_EMPHASIS="general,standards,quality,risk"
 export ADO_ASSIST_ANTHROPIC_MAX_TOKENS="4096"
 export ADO_ASSIST_OPENAI_COMPAT_API_KEY="..."
 ```
+
+`ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE` defaults to `pat`. Use `bearer` inside Azure Pipelines when authenticating with `$(System.AccessToken)`. In bearer mode, set `ADO_ASSIST_AZURE_DEVOPS_TOKEN`, or expose `SYSTEM_ACCESSTOKEN` directly as shown below.
 
 `ADO_ASSIST_AZURE_DEVOPS_ORG` is optional when using a full PR URL because the organization is parsed from the URL. It is required when using the shorthand review flags.
 
@@ -219,6 +223,44 @@ ado-assist --help
 ```
 
 The variables above last for the current terminal session. Put them in your PowerShell profile or another secret manager if you want a persistent setup.
+
+### Azure Pipelines With System.AccessToken
+
+Azure Pipelines can use its job OAuth token instead of a long-lived Azure DevOps PAT. The build service identity must have enough repository permission to read PR data, and Code write permission if the pipeline posts comments.
+
+```yaml
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '24.x'
+
+  - script: npm install -g ado-assist
+    displayName: Install ADO Assist
+
+  - script: |
+      ado-assist review \
+        --project "$(System.TeamProject)" \
+        --repo "$(Build.Repository.Name)" \
+        --pr "$(System.PullRequest.PullRequestId)" \
+        --mode full \
+        --check-docs azure \
+        --output "$(Build.ArtifactStagingDirectory)/ado-assist"
+    displayName: Draft ADO Assist review
+    env:
+      ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE: bearer
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      ADO_ASSIST_AZURE_DEVOPS_ORG: your-org
+      ADO_ASSIST_PROVIDER: openai
+      ADO_ASSIST_OPENAI_API_KEY: $(ADO_ASSIST_OPENAI_API_KEY)
+      ADO_ASSIST_OPENAI_MODEL: gpt-5.4
+```
+
+In YAML pipelines, pass `$(System.AccessToken)` into the script environment as `SYSTEM_ACCESSTOKEN`. If your organization restricts job authorization scope or protected repository access, grant the pipeline build service identity access to the target repository/project.
 
 ## Usage
 

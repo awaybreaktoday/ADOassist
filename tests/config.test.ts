@@ -11,6 +11,8 @@ describe("loadConfigFromEnv", () => {
     });
 
     expect(config.azureDevOps.pat).toBe("pat");
+    expect(config.azureDevOps.authMode).toBe("pat");
+    expect(config.azureDevOps.token).toBe("pat");
     expect(config.provider.kind).toBe("openai");
     expect(config.provider.model).toBe("gpt-4.1");
     expect(config.reviewEmphasis).toEqual(["general", "standards", "quality", "risk"]);
@@ -70,7 +72,37 @@ describe("loadConfigFromEnv", () => {
     expect(config.provider.apiKey).toBe("optional-key");
   });
 
-  it("rejects missing Azure DevOps PAT", () => {
+  it("loads Azure DevOps bearer auth from System.AccessToken for pipeline runs", () => {
+    const config = loadConfigFromEnv({
+      ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE: "bearer",
+      SYSTEM_ACCESSTOKEN: "system-token",
+      ADO_ASSIST_PROVIDER: "openai",
+      ADO_ASSIST_OPENAI_API_KEY: "openai-key",
+      ADO_ASSIST_OPENAI_MODEL: "gpt-4.1"
+    });
+
+    expect(config.azureDevOps).toMatchObject({
+      authMode: "bearer",
+      token: "system-token"
+    });
+    expect(config.azureDevOps.pat).toBeUndefined();
+  });
+
+  it("loads Azure DevOps bearer auth from the explicit token variable", () => {
+    const config = loadAzureDevOpsConfigFromEnv({
+      ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE: "bearer",
+      ADO_ASSIST_AZURE_DEVOPS_TOKEN: "bearer-token",
+      ADO_ASSIST_AZURE_DEVOPS_ORG: "acme"
+    });
+
+    expect(config).toEqual({
+      authMode: "bearer",
+      token: "bearer-token",
+      organization: "acme"
+    });
+  });
+
+  it("rejects missing Azure DevOps PAT in PAT auth mode", () => {
     expect(() =>
       loadConfigFromEnv({
         ADO_ASSIST_PROVIDER: "openai",
@@ -80,13 +112,30 @@ describe("loadConfigFromEnv", () => {
     ).toThrow("ADO_ASSIST_AZURE_DEVOPS_PAT is required");
   });
 
+  it("rejects missing Azure DevOps bearer token in bearer auth mode", () => {
+    expect(() =>
+      loadAzureDevOpsConfigFromEnv({
+        ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE: "bearer"
+      })
+    ).toThrow("ADO_ASSIST_AZURE_DEVOPS_TOKEN or SYSTEM_ACCESSTOKEN is required");
+  });
+
+  it("rejects unsupported Azure DevOps auth modes", () => {
+    expect(() =>
+      loadAzureDevOpsConfigFromEnv({
+        ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE: "oauth",
+        ADO_ASSIST_AZURE_DEVOPS_TOKEN: "token"
+      })
+    ).toThrow("ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE must be pat or bearer");
+  });
+
   it("loads Azure DevOps-only configuration for posting", () => {
     const config = loadAzureDevOpsConfigFromEnv({
       ADO_ASSIST_AZURE_DEVOPS_PAT: "pat",
       ADO_ASSIST_AZURE_DEVOPS_ORG: "acme"
     });
 
-    expect(config).toEqual({ pat: "pat", organization: "acme" });
+    expect(config).toEqual({ authMode: "pat", token: "pat", pat: "pat", organization: "acme" });
   });
 
   it("rejects incomplete OpenAI configuration", () => {

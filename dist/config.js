@@ -12,6 +12,7 @@ const VALID_PROVIDER_KINDS = new Set([
     "gemini",
     "openai-compatible"
 ]);
+const VALID_AZURE_DEVOPS_AUTH_MODES = new Set(["pat", "bearer"]);
 const SAMPLE_USER_CONFIG = {
     azureDevOps: {
         organization: "your-org"
@@ -158,9 +159,21 @@ export function loadAzureDevOpsConfigFromEnv(env = process.env) {
 }
 export function loadAzureDevOpsConfig(userConfig = {}, env = process.env) {
     rejectSecretConfig(userConfig);
+    const authMode = resolveAzureDevOpsAuthMode(env, userConfig);
+    const organization = firstValue(env.ADO_ASSIST_AZURE_DEVOPS_ORG, userConfig.azureDevOps?.organization);
+    if (authMode === "bearer") {
+        return {
+            authMode,
+            token: requireResolvedValue("ADO_ASSIST_AZURE_DEVOPS_TOKEN or SYSTEM_ACCESSTOKEN", env.ADO_ASSIST_AZURE_DEVOPS_TOKEN, env.SYSTEM_ACCESSTOKEN),
+            organization
+        };
+    }
+    const pat = requireValue(env, "ADO_ASSIST_AZURE_DEVOPS_PAT");
     return {
-        pat: requireValue(env, "ADO_ASSIST_AZURE_DEVOPS_PAT"),
-        organization: firstValue(env.ADO_ASSIST_AZURE_DEVOPS_ORG, userConfig.azureDevOps?.organization)
+        authMode,
+        token: pat,
+        pat,
+        organization
     };
 }
 export async function loadUserConfigFile(filename = defaultUserConfigPath()) {
@@ -223,7 +236,8 @@ export function redactConfig(config) {
         ...config,
         azureDevOps: {
             ...config.azureDevOps,
-            pat: "<redacted>"
+            token: "<redacted>",
+            pat: config.azureDevOps.pat === undefined ? undefined : "<redacted>"
         },
         provider: redactProviderConfig(config.provider),
         reviewEmphasis: [...config.reviewEmphasis]
@@ -241,6 +255,13 @@ function loadReviewEmphasis(userConfig, env) {
 function loadOutputDir(userConfig, env) {
     return firstValue(env.ADO_ASSIST_OUTPUT_DIR, userConfig.review?.outputDir);
 }
+function resolveAzureDevOpsAuthMode(env, userConfig) {
+    const authMode = firstValue(env.ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE, userConfig.azureDevOps?.authMode) ?? "pat";
+    if (!VALID_AZURE_DEVOPS_AUTH_MODES.has(authMode)) {
+        throw new AppError("ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE must be pat or bearer");
+    }
+    return authMode;
+}
 function userProviderValue(userConfig, key) {
     const provider = userConfig.provider;
     const value = provider?.[key];
@@ -253,6 +274,10 @@ function userProviderNumber(userConfig, key) {
 }
 function rejectSecretConfig(config) {
     if (config.azureDevOps?.pat) {
+        throw new AppError("Do not store secrets in the ADO Assist config file");
+    }
+    const azureDevOps = config.azureDevOps;
+    if (azureDevOps?.token) {
         throw new AppError("Do not store secrets in the ADO Assist config file");
     }
     const provider = config.provider;

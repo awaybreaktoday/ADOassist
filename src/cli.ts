@@ -53,7 +53,7 @@ export function createCli(): Command {
         options: { project?: string; repo?: string; pr?: string; mode?: string; output?: string; checkDocs?: string | boolean }
       ) => {
         const config = await loadConfigFromFileAndEnv(selectedConfigPath());
-        const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
+        const client = new AzureDevOpsClient(config.azureDevOps);
         const provider = createReviewProvider(config);
         const filename = await createReviewDraft({
           target: { prUrl, project: options.project, repo: options.repo, pr: options.pr },
@@ -98,7 +98,7 @@ export function createCli(): Command {
     .requiredOption("--repo <repo>")
     .action(async (options: { project: string; repo: string }) => {
       const azureDevOps = await loadAzureDevOpsConfigFromFileAndEnv(selectedConfigPath());
-      const client = new AzureDevOpsClient({ pat: azureDevOps.pat });
+      const client = new AzureDevOpsClient(azureDevOps);
       const pullRequests = await listOpenPullRequests({
         target: { project: options.project, repo: options.repo },
         config: { azureDevOps },
@@ -128,7 +128,7 @@ export function createCli(): Command {
     .option("--output <dir>", "directory for generated review drafts")
     .action(async (options: { project: string; repo: string; mode?: string; limit?: string; output?: string }) => {
       const config = await loadConfigFromFileAndEnv(selectedConfigPath());
-      const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
+      const client = new AzureDevOpsClient(config.azureDevOps);
       const provider = createReviewProvider(config);
       const filenames = await reviewOpenPullRequests({
         target: { project: options.project, repo: options.repo },
@@ -155,7 +155,7 @@ export function createCli(): Command {
     .argument("<review-file>")
     .action(async (reviewFile: string) => {
       const azureDevOps = await loadAzureDevOpsConfigFromFileAndEnv(selectedConfigPath());
-      const client = new AzureDevOpsClient({ pat: azureDevOps.pat });
+      const client = new AzureDevOpsClient(azureDevOps);
       const count = await postReviewDraftFile(reviewFile, client);
       console.log(`Posted ${count} approved comment${count === 1 ? "" : "s"}`);
     });
@@ -171,7 +171,7 @@ export function createCli(): Command {
     .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
     .action(async (options: { target: string; mode?: string; output?: string; apply?: boolean; checkDocs?: string | boolean }) => {
       const config = await loadConfigFromFileAndEnv(selectedConfigPath());
-      const client = new AzureDevOpsClient({ pat: config.azureDevOps.pat });
+      const client = new AzureDevOpsClient(config.azureDevOps);
       const provider = createReviewProvider(config);
       const git = new GitClient();
       const result = await preparePullRequest({

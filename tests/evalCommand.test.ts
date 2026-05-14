@@ -16,7 +16,7 @@ afterEach(async () => {
 
 function configForProvider(provider: ProviderConfig): AppConfig {
   return {
-    azureDevOps: { pat: "pat" },
+    azureDevOps: { authMode: "pat", token: "pat", pat: "pat" },
     provider,
     reviewEmphasis: ["general", "standards", "quality", "risk"]
   };

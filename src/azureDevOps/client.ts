@@ -1,6 +1,7 @@
 import { createTwoFilesPatch } from "diff";
 import { AppError } from "../errors.js";
 import type {
+  AzureDevOpsAuthMode,
   ChangedFile,
   PullRequestMetadata,
   PullRequestRef,
@@ -43,7 +44,9 @@ export interface CreatePullRequestRequest {
 }
 
 export interface AzureDevOpsClientOptions {
-  pat: string;
+  pat?: string;
+  authMode?: AzureDevOpsAuthMode;
+  token?: string;
   fetchImpl?: FetchLike;
 }
 
@@ -53,7 +56,21 @@ export class AzureDevOpsClient {
 
   constructor(options: AzureDevOpsClientOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
-    this.authorization = `Basic ${Buffer.from(`:${options.pat}`).toString("base64")}`;
+    const authMode = options.authMode ?? "pat";
+
+    if (authMode === "bearer") {
+      if (!options.token?.trim()) {
+        throw new AppError("Azure DevOps bearer auth requires a token");
+      }
+      this.authorization = `Bearer ${options.token}`;
+      return;
+    }
+
+    const pat = options.pat ?? options.token;
+    if (!pat?.trim()) {
+      throw new AppError("Azure DevOps PAT auth requires a PAT");
+    }
+    this.authorization = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
   }
 
   async listActivePullRequests(repository: RepositoryRef): Promise<PullRequestSummary[]> {

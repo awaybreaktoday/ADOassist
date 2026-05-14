@@ -23,6 +23,24 @@ describe("AzureDevOpsClient", () => {
     );
   });
 
+  it("uses bearer auth with pipeline access tokens", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        title: "Add payment retry",
+        description: "Adds retry support.",
+        createdBy: { displayName: "A. Developer" },
+        sourceRefName: "refs/heads/feature/retry",
+        targetRefName: "refs/heads/main"
+      })
+    });
+
+    const client = new AzureDevOpsClient({ authMode: "bearer", token: "system-token", fetchImpl: fetchMock });
+    await client.getPullRequestMetadata(sampleContext.ref);
+
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe("Bearer system-token");
+  });
+
   it("includes the PR description in metadata", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

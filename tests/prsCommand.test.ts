@@ -4,6 +4,8 @@ import type { AppConfig, PullRequestSummary } from "../src/types.js";
 
 const baseConfig: AppConfig = {
   azureDevOps: {
+    authMode: "pat",
+    token: "pat",
     pat: "pat",
     organization: "acme"
   },
@@ -62,7 +64,7 @@ describe("resolveRepositoryRef", () => {
   it("requires a configured org", () => {
     expect(() => resolveRepositoryRef({ project: "Payments", repo: "api-service" }, {
       ...baseConfig,
-      azureDevOps: { pat: "pat" }
+      azureDevOps: { authMode: "pat", token: "pat", pat: "pat" }
     })).toThrow("ADO_ASSIST_AZURE_DEVOPS_ORG is required for PR discovery");
   });
 });

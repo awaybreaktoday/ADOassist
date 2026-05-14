@@ -5,7 +5,7 @@ import type { AppConfig } from "../src/types.js";
 describe("createReviewProvider", () => {
   it("creates an OpenAI provider", () => {
     const config: AppConfig = {
-      azureDevOps: { pat: "pat" },
+      azureDevOps: { authMode: "pat", token: "pat", pat: "pat" },
       provider: { kind: "openai", apiKey: "key", model: "gpt-4.1" },
       reviewEmphasis: ["general"]
     };
@@ -15,7 +15,7 @@ describe("createReviewProvider", () => {
 
   it("creates an Azure OpenAI provider", () => {
     const config: AppConfig = {
-      azureDevOps: { pat: "pat" },
+      azureDevOps: { authMode: "pat", token: "pat", pat: "pat" },
       provider: {
         kind: "azure-openai",
         apiKey: "key",
@@ -30,7 +30,7 @@ describe("createReviewProvider", () => {
 
   it("creates an Anthropic provider", () => {
     const config: AppConfig = {
-      azureDevOps: { pat: "pat" },
+      azureDevOps: { authMode: "pat", token: "pat", pat: "pat" },
       provider: {
         kind: "anthropic",
         apiKey: "key",
@@ -45,7 +45,7 @@ describe("createReviewProvider", () => {
 
   it("creates a Gemini provider", () => {
     const config: AppConfig = {
-      azureDevOps: { pat: "pat" },
+      azureDevOps: { authMode: "pat", token: "pat", pat: "pat" },
       provider: { kind: "gemini", apiKey: "key", model: "gemini-1.5-pro" },
       reviewEmphasis: ["standards"]
     };
@@ -55,7 +55,7 @@ describe("createReviewProvider", () => {
 
   it("creates an OpenAI-compatible provider", () => {
     const config: AppConfig = {
-      azureDevOps: { pat: "pat" },
+      azureDevOps: { authMode: "pat", token: "pat", pat: "pat" },
       provider: {
         kind: "openai-compatible",
         baseUrl: "http://127.0.0.1:8080/v1",

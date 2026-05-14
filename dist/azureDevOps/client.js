@@ -5,7 +5,19 @@ export class AzureDevOpsClient {
     authorization;
     constructor(options) {
         this.fetchImpl = options.fetchImpl ?? fetch;
-        this.authorization = `Basic ${Buffer.from(`:${options.pat}`).toString("base64")}`;
+        const authMode = options.authMode ?? "pat";
+        if (authMode === "bearer") {
+            if (!options.token?.trim()) {
+                throw new AppError("Azure DevOps bearer auth requires a token");
+            }
+            this.authorization = `Bearer ${options.token}`;
+            return;
+        }
+        const pat = options.pat ?? options.token;
+        if (!pat?.trim()) {
+            throw new AppError("Azure DevOps PAT auth requires a PAT");
+        }
+        this.authorization = `Basic ${Buffer.from(`:${pat}`).toString("base64")}`;
     }
     async listActivePullRequests(repository) {
         const url = new URL(`${this.repositoryBaseUrl(repository)}/pullrequests`);

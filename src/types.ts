@@ -1,6 +1,7 @@
 export type ReviewMode = "full" | "code" | "quality" | "risk";
 export type ReviewEmphasis = "general" | "standards" | "quality" | "risk";
 export type DocCheckProfile = "azure" | "azure-aks";
+export type AzureDevOpsAuthMode = "pat" | "bearer";
 
 export type ProviderConfig =
   | {
@@ -34,7 +35,9 @@ export type ProviderConfig =
 
 export interface AppConfig {
   azureDevOps: {
-    pat: string;
+    authMode: AzureDevOpsAuthMode;
+    token: string;
+    pat?: string;
     organization?: string;
   };
   provider: ProviderConfig;

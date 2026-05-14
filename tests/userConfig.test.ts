@@ -60,7 +60,7 @@ describe("loadConfig", () => {
     );
 
     expect(config).toEqual({
-      azureDevOps: { pat: "pat", organization: "acme" },
+      azureDevOps: { authMode: "pat", token: "pat", pat: "pat", organization: "acme" },
       provider: {
         kind: "openai-compatible",
         baseUrl: "http://127.0.0.1:8080/v1",
@@ -190,12 +190,12 @@ describe("redactConfig", () => {
   it("redacts secrets before display", () => {
     expect(
       redactConfig({
-        azureDevOps: { pat: "pat", organization: "acme" },
+        azureDevOps: { authMode: "pat", token: "pat", pat: "pat", organization: "acme" },
         provider: { kind: "openai", apiKey: "key", model: "gpt-4.1" },
         reviewEmphasis: ["general"]
       })
     ).toEqual({
-      azureDevOps: { pat: "<redacted>", organization: "acme" },
+      azureDevOps: { authMode: "pat", token: "<redacted>", pat: "<redacted>", organization: "acme" },
       provider: { kind: "openai", apiKey: "<redacted>", model: "gpt-4.1" },
       reviewEmphasis: ["general"]
     });

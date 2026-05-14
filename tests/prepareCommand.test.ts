@@ -11,7 +11,7 @@ import type { AppConfig } from "../src/types.js";
 import { sampleReview } from "./fixtures/sampleReview.js";
 
 const baseConfig: AppConfig = {
-  azureDevOps: { pat: "pat" },
+  azureDevOps: { authMode: "pat", token: "pat", pat: "pat" },
   provider: { kind: "openai", apiKey: "key", model: "gpt-4.1" },
   reviewEmphasis: ["general", "standards", "quality", "risk"]
 };
