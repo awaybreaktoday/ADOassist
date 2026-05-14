@@ -9,6 +9,17 @@ interface CheckDocsOptions {
   context?: PullRequestContext;
 }
 
+export type DocChecker = (profile: DocCheckProfile, options?: { context: PullRequestContext }) => Promise<DocEvidence>;
+
+interface CheckDocsForContextOptions {
+  context: PullRequestContext;
+  optional?: boolean;
+  docChecker?: DocChecker;
+}
+
+const noAzureDocProfileMessage =
+  "Could not detect a supported Azure doc profile from the PR context. Use --check-docs azure-aks for AKS changes.";
+
 const azureAksSources: DocSource[] = [
   {
     title: "Upgrade an AKS cluster",
@@ -102,14 +113,35 @@ export async function checkDocs(profile: DocCheckProfile, options: CheckDocsOpti
   };
 }
 
+export async function checkDocsForContext(
+  profile: DocCheckProfile | undefined,
+  options: CheckDocsForContextOptions
+): Promise<DocEvidence | undefined> {
+  if (!profile) {
+    return undefined;
+  }
+
+  try {
+    return await (options.docChecker ?? checkDocs)(profile, { context: options.context });
+  } catch (error) {
+    if (options.optional && isAzureDocProfileDetectionMiss(error)) {
+      return undefined;
+    }
+
+    throw error;
+  }
+}
+
+export function isAzureDocProfileDetectionMiss(error: unknown): boolean {
+  return error instanceof AppError && error.message === noAzureDocProfileMessage;
+}
+
 function detectAzureProfile(context: PullRequestContext | undefined): Exclude<DocCheckProfile, "azure"> {
   if (context && hasAksSignals(context)) {
     return "azure-aks";
   }
 
-  throw new AppError(
-    "Could not detect a supported Azure doc profile from the PR context. Use --check-docs azure-aks for AKS changes."
-  );
+  throw new AppError(noAzureDocProfileMessage);
 }
 
 function detectedAzureFacts(profile: Exclude<DocCheckProfile, "azure">): DocFact[] {

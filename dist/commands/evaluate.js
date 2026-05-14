@@ -69,6 +69,7 @@ export async function runProviderEval(options) {
                 client: options.client,
                 provider,
                 checkDocs: options.checkDocs,
+                checkDocsOptional: options.checkDocsOptional,
                 docChecker
             });
             const runtimeMs = now() - start;

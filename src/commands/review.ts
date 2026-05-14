@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { parsePullRequestUrl } from "../azureDevOps/url.js";
-import { checkDocs } from "../docs/check.js";
+import { checkDocsForContext, type DocChecker } from "../docs/check.js";
 import { formatReviewDraft, reviewDraftFilename } from "../drafts/format.js";
 import { AppError } from "../errors.js";
 import type { ReviewProvider } from "../providers/types.js";
@@ -12,8 +12,6 @@ import type {
   AppConfig,
   ChangedFile,
   DocCheckProfile,
-  DocEvidence,
-  PullRequestContext,
   PullRequestMetadata,
   PullRequestRef,
   ReviewMode
@@ -34,7 +32,8 @@ export interface ReviewCommandOptions {
   client: ReviewDraftClient;
   provider: ReviewProvider;
   checkDocs?: DocCheckProfile;
-  docChecker?: (profile: DocCheckProfile, options?: { context: PullRequestContext }) => Promise<DocEvidence>;
+  checkDocsOptional?: boolean;
+  docChecker?: DocChecker;
 }
 
 export interface ReviewDraftClient {
@@ -47,9 +46,11 @@ export async function createReviewDraft(options: ReviewCommandOptions): Promise<
   const metadata = await options.client.getPullRequestMetadata(ref);
   const files = await options.client.getChangedFiles(ref);
   const context = { ref, metadata, files };
-  const docEvidence = options.checkDocs
-    ? await (options.docChecker ?? checkDocs)(options.checkDocs, { context })
-    : undefined;
+  const docEvidence = await checkDocsForContext(options.checkDocs, {
+    context,
+    optional: options.checkDocsOptional,
+    docChecker: options.docChecker
+  });
   const review = await reviewPullRequest({
     context,
     emphasis: options.mode ? reviewEmphasisForMode(options.mode) : options.config.reviewEmphasis,

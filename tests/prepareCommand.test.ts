@@ -7,6 +7,7 @@ import {
   resolveRepositoryRefFromRemote,
   targetBranchNameFromRef
 } from "../src/commands/prepare.js";
+import { AppError } from "../src/errors.js";
 import type { AppConfig } from "../src/types.js";
 import { sampleReview } from "./fixtures/sampleReview.js";
 
@@ -183,6 +184,69 @@ describe("preparePullRequest", () => {
     const markdown = await readFile(result.draftFile, "utf8");
     expect(markdown).toContain("## Factual Checks");
     expect(markdown).toContain("Checked /aks/dev/vars/westeurope.tfvars");
+  });
+
+  it("dry-runs without docs when auto-detection misses and doc checks are optional", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ado-assist-prepare-"));
+
+    const result = await preparePullRequest({
+      targetBranch: "origin/main",
+      outputDir: tempDir,
+      apply: false,
+      checkDocs: "azure",
+      checkDocsOptional: true,
+      config: baseConfig,
+      git: {
+        async currentBranch() {
+          return "feature/entra";
+        },
+        async changedFilesIncludingWorkingTree() {
+          return [{ path: "/entra-groups/prd/main.tf", diff: '-resource "azuread_group" "this"\n+esource "azuread_group" "this"' }];
+        },
+        async hasWorkingTreeChanges() {
+          return true;
+        },
+        async remoteUrl() {
+          return "ssh.dev.azure.com:v3/acme/Entra/iac-platform-entra-groups";
+        },
+        async stageAll() {
+          throw new Error("dry-run should not stage files");
+        },
+        async commit() {
+          throw new Error("dry-run should not commit");
+        },
+        async pushCurrentBranch() {
+          throw new Error("dry-run should not push");
+        }
+      },
+      client: {
+        async createPullRequest() {
+          throw new Error("dry-run should not create a PR");
+        }
+      },
+      docChecker: async () => {
+        throw new AppError(
+          "Could not detect a supported Azure doc profile from the PR context. Use --check-docs azure-aks for AKS changes."
+        );
+      },
+      provider: {
+        name: "mock",
+        async reviewPullRequest(input) {
+          expect(input.docEvidence).toBeUndefined();
+          return {
+            ...sampleReview,
+            suggestedTitle: "Fix Entra group typo",
+            suggestedDescription: "Fix Terraform syntax.",
+            suggestedCommitMessage: "fix: restore terraform resource keyword",
+            comments: []
+          };
+        }
+      }
+    });
+
+    expect(result.title).toBe("Fix Entra group typo");
+    const markdown = await readFile(result.draftFile, "utf8");
+    expect(markdown).not.toContain("## Factual Checks");
   });
 
   it("stages, commits, pushes, and creates a pull request when apply is enabled", async () => {

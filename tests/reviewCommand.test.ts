@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { createReviewDraft, resolvePullRequestRef, resolveReviewMode } from "../src/commands/review.js";
+import { AppError } from "../src/errors.js";
 import type { AppConfig } from "../src/types.js";
 import { sampleContext, sampleReview } from "./fixtures/sampleReview.js";
 
@@ -57,6 +58,41 @@ describe("createReviewDraft", () => {
 
     expect(filename).toContain(tempDir);
     await expect(readFile(filename, "utf8")).resolves.toContain("# ADO Assist Review Draft");
+  });
+
+  it("continues without docs when auto-detection misses and doc checks are optional", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ado-assist-review-"));
+    const filename = await createReviewDraft({
+      target: {
+        prUrl: sampleContext.ref.url
+      },
+      outputDir: tempDir,
+      checkDocs: "azure",
+      checkDocsOptional: true,
+      config: baseConfig,
+      client: {
+        async getPullRequestMetadata() {
+          return sampleContext.metadata;
+        },
+        async getChangedFiles() {
+          return [{ path: "/entra-groups/prd/main.tf", diff: '+resource "azuread_group" "this" {' }];
+        }
+      },
+      docChecker: async () => {
+        throw new AppError(
+          "Could not detect a supported Azure doc profile from the PR context. Use --check-docs azure-aks for AKS changes."
+        );
+      },
+      provider: {
+        name: "mock",
+        async reviewPullRequest(input) {
+          expect(input.docEvidence).toBeUndefined();
+          return { ...sampleReview, comments: [] };
+        }
+      }
+    });
+
+    await expect(readFile(filename, "utf8")).resolves.not.toContain("## Factual Checks");
   });
 });
 

@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { checkDocs } from "../docs/check.js";
+import { checkDocsForContext } from "../docs/check.js";
 import { formatLocalReviewDraft, localReviewDraftFilename as draftFilename } from "../drafts/format.js";
 import { AppError } from "../errors.js";
 import { reviewPullRequest } from "../review/orchestrator.js";
@@ -13,9 +13,11 @@ export async function createLocalReviewDraft(options) {
         throw new AppError(`No local changes found against ${options.targetBranch}`);
     }
     const context = buildLocalPullRequestContext(sourceBranch, options.targetBranch, files);
-    const docEvidence = options.checkDocs
-        ? await (options.docChecker ?? checkDocs)(options.checkDocs, { context })
-        : undefined;
+    const docEvidence = await checkDocsForContext(options.checkDocs, {
+        context,
+        optional: options.checkDocsOptional,
+        docChecker: options.docChecker
+    });
     const review = await reviewPullRequest({
         context,
         emphasis: options.mode ? reviewEmphasisForMode(options.mode) : options.config.reviewEmphasis,

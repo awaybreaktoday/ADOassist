@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { checkDocs } from "../docs/check.js";
+import { checkDocs, type DocChecker } from "../docs/check.js";
 import { AppError } from "../errors.js";
 import { createReviewProvider } from "../providers/factory.js";
 import type { ReviewProvider } from "../providers/types.js";
@@ -24,7 +24,8 @@ export interface ProviderEvalOptions {
   client: PreparePullRequestClient;
   configForProvider(providerKind: ProviderKind): AppConfig;
   providerFactory?: (config: AppConfig) => ReviewProvider;
-  docChecker?: (profile: DocCheckProfile, options?: { context: PullRequestContext }) => Promise<DocEvidence>;
+  checkDocsOptional?: boolean;
+  docChecker?: DocChecker;
   now?: () => number;
 }
 
@@ -125,6 +126,7 @@ export async function runProviderEval(options: ProviderEvalOptions): Promise<Pro
         client: options.client,
         provider,
         checkDocs: options.checkDocs,
+        checkDocsOptional: options.checkDocsOptional,
         docChecker
       });
       const runtimeMs = now() - start;

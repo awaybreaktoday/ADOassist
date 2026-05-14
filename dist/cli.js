@@ -34,6 +34,7 @@ export function createCli() {
         .option("--mode <mode>", "review mode: full, code, quality, or risk")
         .option("--output <dir>", "directory for generated review drafts")
         .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
+        .option("--check-docs-optional", "continue without docs when --check-docs azure cannot auto-detect a supported profile")
         .action(async (prUrl, options) => {
         const config = await loadConfigFromFileAndEnv(selectedConfigPath());
         const client = new AzureDevOpsClient(config.azureDevOps);
@@ -43,6 +44,7 @@ export function createCli() {
             mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
             outputDir: options.output,
             checkDocs: resolveDocCheckProfile(options.checkDocs),
+            checkDocsOptional: options.checkDocsOptional === true,
             config,
             client,
             provider
@@ -56,6 +58,7 @@ export function createCli() {
         .option("--mode <mode>", "review mode: full, code, quality, or risk")
         .option("--output <dir>", "directory for generated review drafts")
         .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
+        .option("--check-docs-optional", "continue without docs when --check-docs azure cannot auto-detect a supported profile")
         .action(async (options) => {
         const config = await loadConfigFromFileAndEnv(selectedConfigPath());
         const provider = createReviewProvider(config);
@@ -65,6 +68,7 @@ export function createCli() {
             mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
             outputDir: options.output,
             checkDocs: resolveDocCheckProfile(options.checkDocs),
+            checkDocsOptional: options.checkDocsOptional === true,
             config,
             git,
             provider
@@ -139,6 +143,7 @@ export function createCli() {
         .option("--output <dir>", "directory for generated review drafts")
         .option("--apply", "stage, commit, push, and create the Azure DevOps PR")
         .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
+        .option("--check-docs-optional", "continue without docs when --check-docs azure cannot auto-detect a supported profile")
         .action(async (options) => {
         const config = await loadConfigFromFileAndEnv(selectedConfigPath());
         const client = new AzureDevOpsClient(config.azureDevOps);
@@ -150,6 +155,7 @@ export function createCli() {
             outputDir: options.output,
             apply: options.apply === true,
             checkDocs: resolveDocCheckProfile(options.checkDocs),
+            checkDocsOptional: options.checkDocsOptional === true,
             config,
             git,
             client,
@@ -177,6 +183,7 @@ export function createCli() {
         .option("--providers <list>", "comma-separated providers: openai, azure-openai, anthropic, gemini, openai-compatible")
         .option("--output <dir>", "directory for generated eval drafts", ".ado-assist-evals")
         .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
+        .option("--check-docs-optional", "continue without docs when --check-docs azure cannot auto-detect a supported profile")
         .option("--expect <terms>", "comma-separated terms to check for in each generated draft")
         .action(async (options) => {
         const userConfig = await loadUserConfigFile(selectedConfigPath());
@@ -189,6 +196,7 @@ export function createCli() {
             mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
             outputDir: options.output,
             checkDocs: resolveDocCheckProfile(options.checkDocs),
+            checkDocsOptional: options.checkDocsOptional === true,
             providerKinds,
             expectedTerms: resolveExpectedTerms(options.expect),
             git,

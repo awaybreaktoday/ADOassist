@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { checkDocs } from "../docs/check.js";
+import { checkDocsForContext, type DocChecker } from "../docs/check.js";
 import {
   formatLocalReviewDraft,
   localReviewDraftFilename,
@@ -17,7 +17,6 @@ import type {
   AppConfig,
   ChangedFile,
   DocCheckProfile,
-  DocEvidence,
   PullRequestContext,
   PullRequestRef,
   RepositoryRef,
@@ -56,7 +55,8 @@ export interface PreparePullRequestOptions {
   client: PreparePullRequestClient;
   provider: ReviewProvider;
   checkDocs?: DocCheckProfile;
-  docChecker?: (profile: DocCheckProfile, options?: { context: PullRequestContext }) => Promise<DocEvidence>;
+  checkDocsOptional?: boolean;
+  docChecker?: DocChecker;
 }
 
 export interface PreparePullRequestResult {
@@ -85,9 +85,11 @@ export async function preparePullRequest(options: PreparePullRequestOptions): Pr
 
   const repository = resolveRepositoryRefFromRemote(await options.git.remoteUrl("origin"));
   const context = buildLocalPullRequestContext(sourceBranch, options.targetBranch, files);
-  const docEvidence = options.checkDocs
-    ? await (options.docChecker ?? checkDocs)(options.checkDocs, { context })
-    : undefined;
+  const docEvidence = await checkDocsForContext(options.checkDocs, {
+    context,
+    optional: options.checkDocsOptional,
+    docChecker: options.docChecker
+  });
   const review = await reviewPullRequest({
     context,
     emphasis: options.mode ? reviewEmphasisForMode(options.mode) : options.config.reviewEmphasis,

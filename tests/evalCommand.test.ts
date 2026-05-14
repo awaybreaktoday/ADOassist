@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { runProviderEval } from "../src/commands/evaluate.js";
+import { AppError } from "../src/errors.js";
 import type { AppConfig, ProviderConfig, ReviewResult } from "../src/types.js";
 
 let tempDir: string | undefined;
@@ -192,5 +193,74 @@ describe("runProviderEval", () => {
 
     const summary = await readFile(result.summaryFile, "utf8");
     expect(summary).toContain("ADO_ASSIST_GEMINI_API_KEY is required");
+  });
+
+  it("continues provider eval without docs when auto-detection misses and doc checks are optional", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "ado-assist-eval-"));
+
+    const result = await runProviderEval({
+      targetBranch: "origin/main",
+      outputDir: tempDir,
+      checkDocs: "azure",
+      checkDocsOptional: true,
+      providerKinds: ["openai"],
+      now: () => 1000,
+      configForProvider() {
+        return configForProvider({ kind: "openai", apiKey: "key", model: "gpt-5.4" });
+      },
+      git: {
+        async currentBranch() {
+          return "feature/entra";
+        },
+        async changedFilesIncludingWorkingTree() {
+          return [{ path: "/entra-groups/prd/main.tf", diff: '+resource "azuread_group" "this" {' }];
+        },
+        async hasWorkingTreeChanges() {
+          return true;
+        },
+        async remoteUrl() {
+          return "ssh.dev.azure.com:v3/acme/Entra/iac-platform-entra-groups";
+        },
+        async stageAll() {
+          throw new Error("eval should not stage files");
+        },
+        async commit() {
+          throw new Error("eval should not commit");
+        },
+        async pushCurrentBranch() {
+          throw new Error("eval should not push");
+        }
+      },
+      client: {
+        async createPullRequest() {
+          throw new Error("eval should not create PRs");
+        }
+      },
+      docChecker: async () => {
+        throw new AppError(
+          "Could not detect a supported Azure doc profile from the PR context. Use --check-docs azure-aks for AKS changes."
+        );
+      },
+      providerFactory(config) {
+        return {
+          name: `${config.provider.kind}:model`,
+          async reviewPullRequest(input): Promise<ReviewResult> {
+            expect(input.docEvidence).toBeUndefined();
+            return {
+              summary: "Updated Entra groups.",
+              riskSummary: "Low risk.",
+              suggestedTitle: "Update Entra groups",
+              suggestedDescription: "Summary:\nUpdate Entra groups.",
+              suggestedCommitMessage: "chore: update entra groups",
+              comments: []
+            };
+          }
+        };
+      }
+    });
+
+    expect(result.results[0]).toMatchObject({ provider: "openai:gpt-5.4", status: "success" });
+    const summary = await readFile(result.summaryFile, "utf8");
+    expect(summary).toContain("- Check docs: azure");
   });
 });

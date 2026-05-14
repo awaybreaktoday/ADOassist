@@ -47,10 +47,19 @@ export function createCli(): Command {
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--output <dir>", "directory for generated review drafts")
     .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
+    .option("--check-docs-optional", "continue without docs when --check-docs azure cannot auto-detect a supported profile")
     .action(
       async (
         prUrl: string | undefined,
-        options: { project?: string; repo?: string; pr?: string; mode?: string; output?: string; checkDocs?: string | boolean }
+        options: {
+          project?: string;
+          repo?: string;
+          pr?: string;
+          mode?: string;
+          output?: string;
+          checkDocs?: string | boolean;
+          checkDocsOptional?: boolean;
+        }
       ) => {
         const config = await loadConfigFromFileAndEnv(selectedConfigPath());
         const client = new AzureDevOpsClient(config.azureDevOps);
@@ -60,6 +69,7 @@ export function createCli(): Command {
           mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
           outputDir: options.output,
           checkDocs: resolveDocCheckProfile(options.checkDocs),
+          checkDocsOptional: options.checkDocsOptional === true,
           config,
           client,
           provider
@@ -75,7 +85,8 @@ export function createCli(): Command {
     .option("--mode <mode>", "review mode: full, code, quality, or risk")
     .option("--output <dir>", "directory for generated review drafts")
     .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
-    .action(async (options: { target: string; mode?: string; output?: string; checkDocs?: string | boolean }) => {
+    .option("--check-docs-optional", "continue without docs when --check-docs azure cannot auto-detect a supported profile")
+    .action(async (options: { target: string; mode?: string; output?: string; checkDocs?: string | boolean; checkDocsOptional?: boolean }) => {
       const config = await loadConfigFromFileAndEnv(selectedConfigPath());
       const provider = createReviewProvider(config);
       const git = new GitClient();
@@ -84,6 +95,7 @@ export function createCli(): Command {
         mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
         outputDir: options.output,
         checkDocs: resolveDocCheckProfile(options.checkDocs),
+        checkDocsOptional: options.checkDocsOptional === true,
         config,
         git,
         provider
@@ -169,7 +181,16 @@ export function createCli(): Command {
     .option("--output <dir>", "directory for generated review drafts")
     .option("--apply", "stage, commit, push, and create the Azure DevOps PR")
     .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
-    .action(async (options: { target: string; mode?: string; output?: string; apply?: boolean; checkDocs?: string | boolean }) => {
+    .option("--check-docs-optional", "continue without docs when --check-docs azure cannot auto-detect a supported profile")
+    .action(
+      async (options: {
+        target: string;
+        mode?: string;
+        output?: string;
+        apply?: boolean;
+        checkDocs?: string | boolean;
+        checkDocsOptional?: boolean;
+      }) => {
       const config = await loadConfigFromFileAndEnv(selectedConfigPath());
       const client = new AzureDevOpsClient(config.azureDevOps);
       const provider = createReviewProvider(config);
@@ -180,6 +201,7 @@ export function createCli(): Command {
         outputDir: options.output,
         apply: options.apply === true,
         checkDocs: resolveDocCheckProfile(options.checkDocs),
+        checkDocsOptional: options.checkDocsOptional === true,
         config,
         git,
         client,
@@ -198,7 +220,8 @@ export function createCli(): Command {
       } else {
         console.log("Dry run only. Re-run with --apply to stage, commit, push, and create the pull request.");
       }
-    });
+      }
+    );
 
   const evalCommand = program.command("eval").description("Compare provider review output");
 
@@ -210,6 +233,7 @@ export function createCli(): Command {
     .option("--providers <list>", "comma-separated providers: openai, azure-openai, anthropic, gemini, openai-compatible")
     .option("--output <dir>", "directory for generated eval drafts", ".ado-assist-evals")
     .option("--check-docs [profile]", "fetch trusted docs and add sourced factual checks: azure or azure-aks")
+    .option("--check-docs-optional", "continue without docs when --check-docs azure cannot auto-detect a supported profile")
     .option("--expect <terms>", "comma-separated terms to check for in each generated draft")
     .action(
       async (options: {
@@ -218,6 +242,7 @@ export function createCli(): Command {
         providers?: string;
         output: string;
         checkDocs?: string | boolean;
+        checkDocsOptional?: boolean;
         expect?: string;
       }) => {
         const userConfig = await loadUserConfigFile(selectedConfigPath());
@@ -230,6 +255,7 @@ export function createCli(): Command {
           mode: options.mode === undefined ? undefined : resolveReviewMode(options.mode),
           outputDir: options.output,
           checkDocs: resolveDocCheckProfile(options.checkDocs),
+          checkDocsOptional: options.checkDocsOptional === true,
           providerKinds,
           expectedTerms: resolveExpectedTerms(options.expect),
           git,

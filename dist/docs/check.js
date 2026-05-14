@@ -1,4 +1,5 @@
 import { AppError } from "../errors.js";
+const noAzureDocProfileMessage = "Could not detect a supported Azure doc profile from the PR context. Use --check-docs azure-aks for AKS changes.";
 const azureAksSources = [
     {
         title: "Upgrade an AKS cluster",
@@ -80,11 +81,28 @@ export async function checkDocs(profile, options = {}) {
         facts: profile === "azure" ? detectedAzureFacts(resolvedProfile) : azureAksFacts
     };
 }
+export async function checkDocsForContext(profile, options) {
+    if (!profile) {
+        return undefined;
+    }
+    try {
+        return await (options.docChecker ?? checkDocs)(profile, { context: options.context });
+    }
+    catch (error) {
+        if (options.optional && isAzureDocProfileDetectionMiss(error)) {
+            return undefined;
+        }
+        throw error;
+    }
+}
+export function isAzureDocProfileDetectionMiss(error) {
+    return error instanceof AppError && error.message === noAzureDocProfileMessage;
+}
 function detectAzureProfile(context) {
     if (context && hasAksSignals(context)) {
         return "azure-aks";
     }
-    throw new AppError("Could not detect a supported Azure doc profile from the PR context. Use --check-docs azure-aks for AKS changes.");
+    throw new AppError(noAzureDocProfileMessage);
 }
 function detectedAzureFacts(profile) {
     return [
