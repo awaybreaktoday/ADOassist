@@ -2,6 +2,18 @@
 
 ADO Assist is a TypeScript CLI for drafting Azure DevOps pull request review feedback with an AI reviewer. It can run locally before creating a PR, against existing Azure DevOps PRs, or inside Azure DevOps Pipelines using either `System.AccessToken` or PAT authentication. It writes an editable Markdown review file first, then posts only the comments that remain in the approved JSON block.
 
+## Contents
+
+- [Status](#status)
+- [Install](#install)
+- [Configuration](#configuration)
+- [Azure Pipelines With System.AccessToken](#azure-pipelines-with-systemaccesstoken)
+- [Usage](#usage)
+- [Review Draft Storage](#review-draft-storage)
+- [Privacy Notes](#privacy-notes)
+- [Verification](#verification)
+- [Publishing](#publishing)
+
 ## Status
 
 ADO Assist is a working CLI and Azure DevOps Pipelines helper for AI-assisted PR review. It fetches PR metadata, builds file diffs from Azure DevOps PR iteration content, drafts review feedback into Markdown, and posts only approved comments. It also supports local branch review, end-to-end PR preparation, curated Azure documentation checks for supported profiles, and provider comparison runs across OpenAI, Azure OpenAI, Anthropic, Gemini, and OpenAI-compatible models.
