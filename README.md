@@ -168,6 +168,7 @@ export ADO_ASSIST_AZURE_DEVOPS_PAT="..."
 export ADO_ASSIST_PROVIDER="anthropic"
 export ADO_ASSIST_ANTHROPIC_API_KEY="..."
 export ADO_ASSIST_ANTHROPIC_MODEL="claude-3-5-sonnet-latest"
+export ADO_ASSIST_ANTHROPIC_MAX_TOKENS="8192"
 ```
 
 For Google Gemini:
@@ -207,6 +208,8 @@ export ADO_ASSIST_OPENAI_COMPAT_API_KEY="..."
 `ADO_ASSIST_OUTPUT_DIR` overrides where generated review Markdown files are written. If it is not set, ADO Assist uses the OS-specific app data location documented below.
 
 `ADO_ASSIST_OPENAI_COMPAT_API_KEY` is optional because many local model servers do not require authentication. Include `/v1` in `ADO_ASSIST_OPENAI_COMPAT_BASE_URL` for llama.cpp and other servers that expose OpenAI-compatible routes under that prefix.
+
+`ADO_ASSIST_ANTHROPIC_MAX_TOKENS` defaults to `8192`. If a large PR still fails with `Anthropic response hit max_tokens before completing review JSON`, raise it to `12000` or reduce the review scope.
 
 ### Windows PowerShell
 
@@ -262,6 +265,17 @@ steps:
 ```
 
 In YAML pipelines, pass `$(System.AccessToken)` into the script environment as `SYSTEM_ACCESSTOKEN`. If your organization restricts job authorization scope or protected repository access, grant the pipeline build service identity access to the target repository/project. For `ado-assist post`, grant the project build service identity, usually named `<project> Build Service (<organization>)`, permission to contribute to pull requests/code reviews on the target repository.
+
+If you prefer PAT mode in Azure Pipelines, store `ADO_ASSIST_AZURE_DEVOPS_PAT` as a secret variable or in a protected variable group and use:
+
+```yaml
+env:
+  ADO_ASSIST_AZURE_DEVOPS_AUTH_MODE: pat
+  ADO_ASSIST_AZURE_DEVOPS_PAT: $(ADO_ASSIST_AZURE_DEVOPS_PAT)
+  ADO_ASSIST_AZURE_DEVOPS_ORG: your-org
+```
+
+The PAT needs Code read access to draft reviews and Code write access to post PR comments.
 
 ## Usage
 
